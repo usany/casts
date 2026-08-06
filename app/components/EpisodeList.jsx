@@ -1,8 +1,21 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { getAudioDuration } from '../lib/utils'
 import styles from './EpisodeList.module.css'
 
 export default function EpisodeList({ episodes, currentIndex, onSelect }) {
+  const [durations, setDurations] = useState({})
+
+  useEffect(() => {
+    episodes.forEach(async (ep, i) => {
+      if (!durations[i]) {
+        const duration = await getAudioDuration(ep.url)
+        setDurations(prev => ({ ...prev, [i]: duration }))
+      }
+    })
+  }, [episodes, durations])
+
   return (
     <div className={styles.container}>
       <h2>Episodes</h2>
@@ -15,7 +28,7 @@ export default function EpisodeList({ episodes, currentIndex, onSelect }) {
           >
             <div className={styles.title}>{ep.title}</div>
             <div className={styles.podcast}>{ep.podcast}</div>
-            <div className={styles.duration}>⏱ {ep.duration}</div>
+            <div className={styles.duration}>⏱ {durations[i] || '0:00'}</div>
           </div>
         ))}
       </div>

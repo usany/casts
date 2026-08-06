@@ -16,6 +16,12 @@
 .times {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85em;
-  color: #666;
+  font-size: 0.9em;
+  color: #333;
+  padding: 8px 0;
+  font-weight: 500;
+}
+
+.times span {
+  font-family: monospace;
 }

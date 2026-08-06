@@ -50,7 +50,7 @@ export default function Player() {
       audio.removeEventListener('loadedmetadata', updateDuration)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [currentIndex, volume])
+  }, [currentIndex])
 
   useEffect(() => {
     if (audioRef.current) {
