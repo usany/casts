@@ -1,0 +1,16 @@
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.smallBtn {
+  padding: 10px 15px;
+  font-size: 0.9em;
+}
+
+.playBtn {
+  padding: 14px 30px;
+  font-size: 1.1em;
+}
