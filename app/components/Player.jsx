@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { EPISODES, formatTime } from '../lib/utils'
 import EpisodeList from './EpisodeList'
-import ProgressBar from './ProgressBar'
+import WaveformProgress from './WaveformProgress'
 import Controls from './Controls'
 import VolumeControl from './VolumeControl'
 import styles from './Player.module.css'
@@ -120,7 +120,8 @@ export default function Player() {
             <p>{episode.podcast}</p>
           </div>
 
-          <ProgressBar
+          <WaveformProgress
+            audio={audioRef.current}
             current={currentTimeSeconds}
             currentDisplay={currentTime}
             duration={duration}
