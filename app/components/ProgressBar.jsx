@@ -2,15 +2,15 @@
 
 import styles from './ProgressBar.module.css'
 
-export default function ProgressBar({ current, duration, onSeek }) {
+export default function ProgressBar({ current, currentDisplay, duration, durationSeconds, onSeek }) {
   function handleSeek(e) {
     const rect = e.currentTarget.getBoundingClientRect()
     const percent = (e.clientX - rect.left) / rect.width
-    const newTime = percent * duration
+    const newTime = percent * durationSeconds
     onSeek(newTime)
   }
 
-  const progress = duration ? (current / duration) * 100 : 0
+  const progress = durationSeconds ? (current / durationSeconds) * 100 : 0
 
   return (
     <div className={styles.container}>
@@ -18,7 +18,7 @@ export default function ProgressBar({ current, duration, onSeek }) {
         <div className={styles.fill} style={{ width: `${progress}%` }} />
       </div>
       <div className={styles.times}>
-        <span>{current}</span>
+        <span>{currentDisplay}</span>
         <span>{duration}</span>
       </div>
     </div>

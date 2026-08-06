@@ -13,7 +13,9 @@ export default function Player() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState('0:00')
+  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0)
   const [duration, setDuration] = useState('0:00')
+  const [durationSeconds, setDurationSeconds] = useState(0)
   const [volume, setVolume] = useState(70)
 
   const episode = EPISODES[currentIndex]
@@ -27,15 +29,16 @@ export default function Player() {
 
     const updateTime = () => {
       setCurrentTime(formatTime(audio.currentTime))
-      const progress = (audio.currentTime / audio.duration) * 100
+      setCurrentTimeSeconds(audio.currentTime)
     }
 
     const updateDuration = () => {
       setDuration(formatTime(audio.duration))
+      setDurationSeconds(audio.duration)
     }
 
     const handleEnded = () => {
-      handleNext()
+      setCurrentIndex((prev) => (prev + 1) % EPISODES.length)
     }
 
     audio.addEventListener('timeupdate', updateTime)
@@ -47,7 +50,7 @@ export default function Player() {
       audio.removeEventListener('loadedmetadata', updateDuration)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [currentIndex])
+  }, [currentIndex, volume])
 
   useEffect(() => {
     if (audioRef.current) {
@@ -71,12 +74,20 @@ export default function Player() {
   }
 
   function handlePrevious() {
-    setCurrentIndex((prev) => (prev - 1 + EPISODES.length) % EPISODES.length)
+    const newIndex = (currentIndex - 1 + EPISODES.length) % EPISODES.length
+    setCurrentIndex(newIndex)
+    const audio = audioRef.current
+    audio.src = EPISODES[newIndex].url
+    audio.play()
     setIsPlaying(true)
   }
 
   function handleNext() {
-    setCurrentIndex((prev) => (prev + 1) % EPISODES.length)
+    const newIndex = (currentIndex + 1) % EPISODES.length
+    setCurrentIndex(newIndex)
+    const audio = audioRef.current
+    audio.src = EPISODES[newIndex].url
+    audio.play()
     setIsPlaying(true)
   }
 
@@ -110,8 +121,10 @@ export default function Player() {
           </div>
 
           <ProgressBar
-            current={currentTime}
+            current={currentTimeSeconds}
+            currentDisplay={currentTime}
             duration={duration}
+            durationSeconds={durationSeconds}
             onSeek={handleSeek}
           />
 
