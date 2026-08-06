@@ -1,87 +1,106 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from './WaveformProgress.module.css'
 
 export default function WaveformProgress({ audio, current, currentDisplay, duration, durationSeconds, onSeek }) {
   const canvasRef = useRef(null)
-  const analyserRef = useRef(null)
-  const sourceRef = useRef(null)
   const animationIdRef = useRef(null)
+  const [waveformData, setWaveformData] = useState(null)
 
   useEffect(() => {
-    if (!audio || !canvasRef.current) return
+    if (!audio || !audio.src) {
+      console.log('No audio or src:', { audio: !!audio, src: audio?.src })
+      return
+    }
+
+    const analyzeAudio = async () => {
+      try {
+        console.log('Starting audio analysis for:', audio.src)
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        console.log('AudioContext created')
+
+        const response = await fetch(audio.src)
+        if (!response.ok) {
+          throw new Error(`Fetch failed: ${response.status}`)
+        }
+        console.log('Audio file fetched')
+
+        const arrayBuffer = await response.arrayBuffer()
+        console.log('ArrayBuffer ready, size:', arrayBuffer.byteLength)
+
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+        console.log('Audio decoded, duration:', audioBuffer.duration)
+
+        const rawData = audioBuffer.getChannelData(0)
+        const samples = 200
+        const blockSize = Math.floor(rawData.length / samples)
+        const waveformArray = []
+
+        for (let i = 0; i < samples; i++) {
+          let sum = 0
+          for (let j = 0; j < blockSize; j++) {
+            sum += Math.abs(rawData[i * blockSize + j])
+          }
+          waveformArray.push(sum / blockSize)
+        }
+
+        console.log('Waveform data created:', waveformArray.length, 'bars')
+        setWaveformData(waveformArray)
+      } catch (error) {
+        console.error('Error analyzing audio:', error)
+      }
+    }
+
+    analyzeAudio()
+  }, [audio])
+
+  useEffect(() => {
+    if (!canvasRef.current || !waveformData || waveformData.length === 0) {
+      console.log('Canvas not ready:', { canvas: !!canvasRef.current, data: !!waveformData })
+      return
+    }
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    try {
-      if (!analyserRef.current) {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        const analyser = audioContext.createAnalyser()
-        analyser.fftSize = 256
+    const width = canvas.width
+    const height = canvas.height
+    const barCount = waveformData.length
+    const barWidth = width / barCount
 
-        if (!sourceRef.current) {
-          const source = audioContext.createMediaElementAudioSource(audio)
-          source.connect(analyser)
-          analyser.connect(audioContext.destination)
-          sourceRef.current = source
-        }
-
-        analyserRef.current = analyser
-      }
-    } catch (e) {
-      console.error('Error initializing audio context:', e)
-      return
-    }
-
-    const analyser = analyserRef.current
-    const bufferLength = analyser.frequencyBinCount
-    const dataArray = new Uint8Array(bufferLength)
+    // Find max value for scaling (outside draw loop)
+    const maxValue = Math.max(...waveformData)
 
     const draw = () => {
       animationIdRef.current = requestAnimationFrame(draw)
 
-      try {
-        analyser.getByteFrequencyData(dataArray)
-      } catch (e) {
-        // Silently handle errors
-      }
-
-      const width = canvas.width
-      const height = canvas.height
-
+      // Clear canvas
       ctx.fillStyle = '#f3f4f6'
       ctx.fillRect(0, 0, width, height)
 
-      const sliceWidth = (width * 1.0) / bufferLength
-      let x = 0
+      // Draw waveform bars
+      ctx.fillStyle = '#667eea'
 
-      ctx.strokeStyle = '#667eea'
-      ctx.lineWidth = 2
-      ctx.beginPath()
+      for (let i = 0; i < barCount; i++) {
+        const value = waveformData[i] || 0
+        const scaledValue = maxValue > 0 ? value / maxValue : 0
+        const barHeight = scaledValue * height * 0.8
 
-      for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0
-        const y = (v * height) / 2
+        const x = i * barWidth
+        const y = (height - barHeight) / 2
 
-        if (i === 0) {
-          ctx.moveTo(x, height / 2)
-        } else {
-          ctx.lineTo(x, height / 2 - y)
+        if (barHeight > 0) {
+          ctx.fillRect(x, y, Math.max(barWidth - 1, 1), barHeight)
         }
-
-        x += sliceWidth
       }
 
-      ctx.lineTo(width, height / 2)
-      ctx.stroke()
-
+      // Draw progress indicator
       if (durationSeconds > 0) {
         const progressX = (current / durationSeconds) * width
         ctx.fillStyle = '#764ba2'
-        ctx.fillRect(progressX - 2, 0, 4, height)
+        ctx.fillRect(Math.max(progressX - 2, 0), 0, 4, height)
       }
     }
 
@@ -92,7 +111,7 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
         cancelAnimationFrame(animationIdRef.current)
       }
     }
-  }, [audio, current, durationSeconds])
+  }, [current, durationSeconds, waveformData])
 
   function handleSeek(e) {
     const rect = canvasRef.current.getBoundingClientRect()
