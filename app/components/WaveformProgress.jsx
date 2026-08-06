@@ -7,6 +7,7 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
   const canvasRef = useRef(null)
   const animationIdRef = useRef(null)
   const [waveformData, setWaveformData] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     if (!audio || !audio.src) {
@@ -120,6 +121,24 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
     onSeek(newTime)
   }
 
+  function handleMouseDown(e) {
+    setIsDragging(true)
+    handleSeek(e)
+  }
+
+  function handleMouseMove(e) {
+    if (!isDragging) return
+    handleSeek(e)
+  }
+
+  function handleMouseUp() {
+    setIsDragging(false)
+  }
+
+  function handleMouseLeave() {
+    setIsDragging(false)
+  }
+
   return (
     <div className={styles.container}>
       <canvas
@@ -128,6 +147,11 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
         height={80}
         className={styles.canvas}
         onClick={handleSeek}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       />
       <div className={styles.times}>
         <span>{currentDisplay}</span>
