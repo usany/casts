@@ -180,11 +180,11 @@ function generateKoreanTranscriptionEnhanced(weekData) {
 
   // Variety phrases for natural dialogue
   const anchorIntros = [
-    (date, dept, campus, num) => `다음은 ${date}에 게시된 ${dept}의 공지사항입니다. ${campus} 캠퍼스 소식인데요, 리포터 ${num}, 전해주시겠어요?`,
-    (date, dept, campus, num) => `${date}자 ${dept}에서 올라온 공지사항이 있습니다. ${campus} 캠퍼스에서 보내온 소식이죠. 리포터 ${num}, 어떤 내용인가요?`,
-    (date, dept, campus, num) => `이번에는 ${dept}의 소식입니다. ${date}에 ${campus} 캠퍼스에서 발표된 내용인데요, 리포터 ${num}께서 설명해주시죠.`,
-    (date, dept, campus, num) => `${campus} 캠퍼스 ${dept}에서 ${date}에 발표한 공지사항입니다. 리포터 ${num}, 자세한 내용 부탁드립니다.`,
-    (date, dept, campus, num) => `계속해서 ${dept}의 공지사항 전해드립니다. ${date} ${campus} 캠퍼스 소식이에요. 리포터 ${num}?`,
+    (date, dept, campus) => `다음은 ${date}에 게시된 ${dept}의 공지사항입니다. ${campus} 캠퍼스 소식인데요, 리포터, 전해주시겠어요?`,
+    (date, dept, campus) => `${date}자 ${dept}에서 올라온 공지사항이 있습니다. ${campus} 캠퍼스에서 보내온 소식이죠. 리포터, 어떤 내용인가요?`,
+    (date, dept, campus) => `이번에는 ${dept}의 소식입니다. ${date}에 ${campus} 캠퍼스에서 발표된 내용인데요, 리포터께서 설명해주시죠.`,
+    (date, dept, campus) => `${campus} 캠퍼스 ${dept}에서 ${date}에 발표한 공지사항입니다. 리포터, 자세한 내용 부탁드립니다.`,
+    (date, dept, campus) => `계속해서 ${dept}의 공지사항 전해드립니다. ${date} ${campus} 캠퍼스 소식이에요. 리포터?`,
   ];
 
   const reporterStarts = [
@@ -334,9 +334,9 @@ function generateKoreanTranscriptionEnhanced(weekData) {
 
 ${featured ? `${featured}\n\n` : ""}**앵커:**
 
-${anchorIntro(notice.date, department, campus, noticeNum)}
+${anchorIntro(notice.date, department, campus)}
 
-**리포터 ${noticeNum}:**
+**리포터:**
 
 ${reporterStart(department, notice.title)} ${categoryPhrase} ${deadlineSentence}
 
@@ -361,7 +361,7 @@ ${anchorResponse}
 
 오늘 제${week}주차 경희대학교 주간 뉴스 방송을 마무리하겠습니다. 오늘은 총 ${totalNotices}건의 공지사항을 전해드렸습니다. 캠퍼스 운영, 채용 공고, 행사 안내 등 다양한 소식을 다루었는데요, 청취자 여러분께서는 경희대학교 공식 공지사항 게시판에서 더욱 자세한 내용을 확인하실 수 있습니다. 특히 마감일이 있는 공지사항의 경우 기한을 놓치지 않도록 주의해 주시기 바랍니다.
 
-**리포터들:**
+**리포터:**
 
 청취해주신 모든 분들께 감사드립니다!
 
