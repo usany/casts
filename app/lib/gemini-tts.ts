@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, types } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AVAILABLE_VOICES, PrebuiltVoice } from './voices';
@@ -26,7 +26,7 @@ export async function generateMultiSpeakerAudio(
     throw new Error('Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set');
   }
 
-  const client = new GoogleGenerativeAI({ apiKey });
+  const client = new GoogleGenerativeAI(apiKey);
 
   // Validate speaker count (max 2)
   if (options.speakers.length > 2) {
@@ -47,7 +47,7 @@ export async function generateMultiSpeakerAudio(
     },
   }));
 
-  const config: types.GenerateContentConfig = {
+  const config = {
     response_modalities: ['AUDIO'],
     speech_config: {
       multi_speaker_voice_config: {
