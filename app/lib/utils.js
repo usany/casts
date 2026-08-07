@@ -1,5 +1,6 @@
 export const EPISODES = [
-  { title: "Newsfront", podcast: "News Podcast", duration: "0:00", url: "/Newsfront.mp3" },
+  { title: "Newsfront", podcast: "News Podcast", duration: "1:00", url: "/Newsfront.mp3" },
+  { title: "KHU Weekly News Broadcast - Week 5", podcast: "KHU News", duration: "2:37", url: "/week5_broadcast_audio.wav" },
 ]
 
 export async function getAudioDuration(url) {

@@ -12,9 +12,11 @@
     "translate:broadcast-ko": "node scripts/translate-broadcast-to-korean.mjs",
     "enhance:broadcast-ko": "node scripts/enhance-broadcast-korean.mjs",
     "broadcast:ko": "npm run generate:broadcast-transcriptions && npm run translate:broadcast-ko && npm run enhance:broadcast-ko",
-    "news": "npm run crawl && npm run broadcast"
+    "news": "npm run crawl && npm run broadcast",
+    "tts:multi-speaker": "node scripts/generate-multi-speaker-tts.mjs"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

@@ -123,22 +123,24 @@ function parseWeekMarkdownEnhanced(filePath) {
       !line.startsWith(">") &&
       !line.startsWith("**") &&
       !line.startsWith("-") &&
+      !line.startsWith("[") &&
       line.length > 20
     ) {
       contentStarted = true;
       excerptLines.push(line);
-    } else if (contentStarted && line.trim() && !line.startsWith("#")) {
-      // Collect content lines for summary
-      if (line.length > 10 && excerptLines.length < 5) {
+    } else if (contentStarted && line.trim() && !line.startsWith("#") && !line.startsWith("**") && !line.startsWith("[")) {
+      // Collect content lines for summary (get more lines for better summary)
+      if (line.length > 10 && excerptLines.length < 10) {
         excerptLines.push(line);
       }
     }
   }
 
   if (currentNotice && currentNotice.title) {
+    // Get more content for better summarization (up to 600 chars)
     currentNotice.excerpt = excerptLines
       .join(" ")
-      .substring(0, 300)
+      .substring(0, 600)
       .trim();
     notices.push(currentNotice);
   }
@@ -188,11 +190,11 @@ function generateKoreanTranscriptionEnhanced(weekData) {
   ];
 
   const reporterStarts = [
-    (dept, title) => `네, 앵커님. ${dept}에서 "${title}" 공지를 발표했습니다.`,
-    (dept, title) => `말씀드리겠습니다. ${dept}가 "${title}" 제목으로 안내문을 올렸습니다.`,
-    (dept, title) => `알려드리죠. ${dept}의 "${title}" 공지사항입니다.`,
-    (dept, title) => `전해드립니다. ${dept}에서 "${title}"라는 제목의 공지를 게시했습니다.`,
-    (dept, title) => `네. ${dept}가 "${title}" 내용으로 공지했습니다.`,
+    (dept, title) => `네, 앵커님. ${dept}에서 ${title} 관련 공지를 발표했습니다.`,
+    (dept, title) => `말씀드리겠습니다. ${dept}가 ${title}에 대한 안내문을 올렸습니다.`,
+    (dept, title) => `알려드리죠. ${dept}의 ${title} 공지사항입니다.`,
+    (dept, title) => `전해드립니다. ${dept}에서 ${title} 내용으로 공지를 게시했습니다.`,
+    (dept, title) => `네. ${dept}가 ${title}에 관한 소식을 전했습니다.`,
   ];
 
   const categoryPhrases = {
@@ -330,7 +332,58 @@ function generateKoreanTranscriptionEnhanced(weekData) {
       mediaSentence = `이미지 ${notice.images}개가 포함되어 있습니다. `;
     }
 
-    transcription += `## 세그먼트 ${noticeNum}: [${department}] ${notice.title}
+    // Summarize content naturally without ellipsis
+    let contentSummary = "";
+    if (notice.excerpt && notice.excerpt.length > 0) {
+      // Clean up brackets, parentheses and special characters from excerpt
+      let cleanExcerpt = notice.excerpt
+        .replace(/\[.*?\]/g, '') // Remove [text]
+        .replace(/【.*?】/g, '') // Remove 【text】
+        .replace(/\(.*?\)/g, '') // Remove (text)
+        .replace(/（.*?）/g, '') // Remove （text）
+        .replace(/※/g, '') // Remove ※
+        .replace(/~/g, ' ') // Replace ~ with space
+        .replace(/:/g, ' ') // Replace : with space
+        .replace(/：/g, ' ') // Replace ： with space
+        .replace(/-{2,}/g, ' ') // Replace multiple dashes
+        .replace(/\*/g, '') // Remove *
+        .replace(/•/g, '') // Remove •
+        .replace(/·/g, ' ') // Replace · with space
+        .replace(/→/g, ' ') // Replace arrows
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      // Summarize to about 150 characters with natural ending
+      if (cleanExcerpt.length > 150) {
+        cleanExcerpt = cleanExcerpt.substring(0, 150);
+        // Find last complete sentence or phrase
+        const lastPeriod = cleanExcerpt.lastIndexOf('.');
+        const lastComma = cleanExcerpt.lastIndexOf(',');
+        const cutPoint = Math.max(lastPeriod, lastComma);
+        if (cutPoint > 50) {
+          cleanExcerpt = cleanExcerpt.substring(0, cutPoint + 1);
+        }
+      }
+      contentSummary = cleanExcerpt;
+    }
+
+    // Remove department name brackets, parentheses and special chars from title for natural speech
+    const cleanTitle = notice.title
+      .replace(/^\[.*?\]\s*/, '') // Remove leading [dept]
+      .replace(/\[.*?\]/g, '') // Remove any [text]
+      .replace(/\(.*?\)/g, '') // Remove any (text)
+      .replace(/（.*?）/g, '') // Remove any （text）
+      .replace(/~/g, ' ') // Replace ~ with space
+      .replace(/:/g, ' ') // Replace : with space
+      .replace(/：/g, ' ') // Replace ： with space
+      .replace(/-{2,}/g, ' ') // Replace multiple dashes
+      .replace(/\*/g, '') // Remove *
+      .replace(/•/g, '') // Remove •
+      .replace(/·/g, ' ') // Replace · with space
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    transcription += `## 세그먼트 ${noticeNum}: ${cleanTitle}
 
 ${featured ? `${featured}\n\n` : ""}**앵커:**
 
@@ -338,11 +391,11 @@ ${anchorIntro(notice.date, department, campus)}
 
 **리포터:**
 
-${reporterStart(department, notice.title)} ${categoryPhrase} ${deadlineSentence}
+${reporterStart(department, cleanTitle)} ${categoryPhrase} ${deadlineSentence}
 
 ${
-  notice.excerpt
-    ? `${contentIntro} ${notice.excerpt}${notice.excerpt.length > 280 ? "..." : ""} ${contentOutro} `
+  contentSummary
+    ? `${contentIntro} ${contentSummary} ${contentOutro} `
     : `${department}에서 학생들을 위한 안내 사항을 게시했습니다. `
 }${mediaSentence}
 
