@@ -74,21 +74,16 @@ export default function Player() {
   }
 
   function handlePrevious() {
-    const newIndex = (currentIndex - 1 + EPISODES.length) % EPISODES.length
-    setCurrentIndex(newIndex)
     const audio = audioRef.current
-    audio.src = EPISODES[newIndex].url
-    audio.play()
-    setIsPlaying(true)
+    audio.currentTime = Math.max(0, audio.currentTime - 10)
   }
 
   function handleNext() {
-    const newIndex = (currentIndex + 1) % EPISODES.length
-    setCurrentIndex(newIndex)
     const audio = audioRef.current
-    audio.src = EPISODES[newIndex].url
-    audio.play()
-    setIsPlaying(true)
+    audio.currentTime = Math.min(
+      audio.duration || Infinity,
+      audio.currentTime + 10
+    )
   }
 
   function handleSeek(newTime) {

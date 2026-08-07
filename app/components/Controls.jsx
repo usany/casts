@@ -6,13 +6,13 @@ export default function Controls({ isPlaying, onPlay, onPrevious, onNext }) {
   return (
     <div className={styles.controls}>
       <button className={styles.smallBtn} onClick={onPrevious}>
-        ⏮ Prev
+        ⏪ -10s
       </button>
       <button className={styles.playBtn} onClick={onPlay}>
         {isPlaying ? '⏸ Pause' : '▶ Play'}
       </button>
       <button className={styles.smallBtn} onClick={onNext}>
-        Next ⏭
+        +10s ⏩
       </button>
     </div>
   )
