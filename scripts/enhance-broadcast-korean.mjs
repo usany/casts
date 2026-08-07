@@ -178,6 +178,88 @@ function generateKoreanTranscriptionEnhanced(weekData) {
 
 `;
 
+  // Variety phrases for natural dialogue
+  const anchorIntros = [
+    (date, dept, campus, num) => `다음은 ${date}에 게시된 ${dept}의 공지사항입니다. ${campus} 캠퍼스 소식인데요, 리포터 ${num}, 전해주시겠어요?`,
+    (date, dept, campus, num) => `${date}자 ${dept}에서 올라온 공지사항이 있습니다. ${campus} 캠퍼스에서 보내온 소식이죠. 리포터 ${num}, 어떤 내용인가요?`,
+    (date, dept, campus, num) => `이번에는 ${dept}의 소식입니다. ${date}에 ${campus} 캠퍼스에서 발표된 내용인데요, 리포터 ${num}께서 설명해주시죠.`,
+    (date, dept, campus, num) => `${campus} 캠퍼스 ${dept}에서 ${date}에 발표한 공지사항입니다. 리포터 ${num}, 자세한 내용 부탁드립니다.`,
+    (date, dept, campus, num) => `계속해서 ${dept}의 공지사항 전해드립니다. ${date} ${campus} 캠퍼스 소식이에요. 리포터 ${num}?`,
+  ];
+
+  const reporterStarts = [
+    (dept, title) => `네, 앵커님. ${dept}에서 "${title}" 공지를 발표했습니다.`,
+    (dept, title) => `말씀드리겠습니다. ${dept}가 "${title}" 제목으로 안내문을 올렸습니다.`,
+    (dept, title) => `알려드리죠. ${dept}의 "${title}" 공지사항입니다.`,
+    (dept, title) => `전해드립니다. ${dept}에서 "${title}"라는 제목의 공지를 게시했습니다.`,
+    (dept, title) => `네. ${dept}가 "${title}" 내용으로 공지했습니다.`,
+  ];
+
+  const categoryPhrases = {
+    모집: [
+      "지원자 모집 공고입니다.",
+      "참가자를 모집하는 내용이에요.",
+      "신청자를 받는다고 합니다.",
+      "모집 안내 소식입니다.",
+    ],
+    행사: [
+      "행사 안내 공지입니다.",
+      "이번 행사를 알리는 내용이에요.",
+      "행사 개최 소식입니다.",
+      "행사 참가 관련 안내입니다.",
+    ],
+    채용: [
+      "채용 공고 소식입니다.",
+      "직원 모집 안내입니다.",
+      "인력 채용 공고네요.",
+      "채용 관련 공지입니다.",
+    ],
+    수강신청: [
+      "수강 신청 안내입니다.",
+      "강좌 신청 관련 내용입니다.",
+      "수강 관련 공지사항입니다.",
+      "강의 신청 안내 소식입니다.",
+    ],
+    default: [
+      "학생들에게 알리는 공지사항입니다.",
+      "안내 사항을 전하는 내용입니다.",
+      "학교 측에서 공지한 내용입니다.",
+      "알림 사항입니다.",
+    ],
+  };
+
+  const contentIntros = [
+    "공지 내용을 살펴보면,",
+    "내용을 보시면,",
+    "주요 내용은 다음과 같습니다.",
+    "안내 내용입니다.",
+    "자세한 내용 말씀드리면,",
+  ];
+
+  const contentOutros = [
+    "이와 같이 안내하고 있습니다.",
+    "라고 밝혔습니다.",
+    "라고 전했습니다.",
+    "라고 공지했습니다.",
+    "라는 내용입니다.",
+  ];
+
+  const anchorResponses = [
+    "감사합니다. 자세한 사항은 공식 홈페이지를 확인해주시기 바랍니다.",
+    "네, 알겠습니다. 학생 여러분께서는 게시판에서 상세 내용을 확인하실 수 있습니다.",
+    "잘 들었습니다. 더 자세한 정보는 경희대학교 공지사항을 참고해주세요.",
+    "알려주셔서 감사합니다. 관심 있는 분들은 공식 공지사항을 꼭 확인하시기 바랍니다.",
+    "전해주셔서 고맙습니다. 자세한 내용은 학교 홈페이지에서 확인 가능합니다.",
+  ];
+
+  const anchorResponsesWithAttachments = [
+    "네, 감사합니다. 첨부된 자료는 공식 게시판에서 다운로드하실 수 있습니다.",
+    "알겠습니다. 관련 파일은 경희대학교 공지사항에서 확인하실 수 있어요.",
+    "전해주셔서 고맙습니다. 자세한 자료는 게시판의 첨부 파일을 참고해주세요.",
+    "네. 추가 자료가 필요하신 분들은 공식 홈페이지를 방문해주시기 바랍니다.",
+    "잘 들었습니다. 청취자분들께서는 첨부 자료를 내려받아 자세히 확인하실 수 있습니다.",
+  ];
+
   notices.forEach((notice, index) => {
     const noticeNum = index + 1;
     const featured = notice.featured ? "⭐ 주요 소식" : "";
@@ -210,58 +292,63 @@ function generateKoreanTranscriptionEnhanced(weekData) {
     const campus =
       notice.campus.replace(/캠퍼스/g, "").trim() ||
       "공통";
+    
+    // Select varied phrases
+    const anchorIntro = anchorIntros[index % anchorIntros.length];
+    const reporterStart = reporterStarts[index % reporterStarts.length];
+    const categoryPhrase = (categoryPhrases[category] || categoryPhrases.default)[index % 4];
+    const contentIntro = contentIntros[index % contentIntros.length];
+    const contentOutro = contentOutros[index % contentOutros.length];
+    const hasAttachments = notice.attachments > 0 || notice.images > 0;
+    const anchorResponse = hasAttachments 
+      ? anchorResponsesWithAttachments[index % anchorResponsesWithAttachments.length]
+      : anchorResponses[index % anchorResponses.length];
 
-    // Create natural sentence descriptions
+    // Create natural sentence descriptions with variety
     let deadlineSentence = "";
     if (deadlineMatch) {
-      deadlineSentence = `마감일은 ${deadlineMatch[1].replace(/\./g, "월 ")}일까지입니다. `;
-    }
-
-    let categorySentence = "";
-    if (category === "모집") {
-      categorySentence = "이번 공지는 지원자 모집에 관한 내용입니다. ";
-    } else if (category === "행사") {
-      categorySentence = "이번 행사 안내입니다. ";
-    } else if (category === "채용") {
-      categorySentence = "채용 공고 소식입니다. ";
-    } else if (category === "수강신청") {
-      categorySentence = "수강 신청 관련 안내입니다. ";
-    } else {
-      categorySentence = "중요한 공지사항입니다. ";
+      const deadlineVariations = [
+        `마감일은 ${deadlineMatch[1].replace(/\./g, "월 ")}일까지입니다.`,
+        `${deadlineMatch[1].replace(/\./g, "월 ")}일까지 접수받습니다.`,
+        `신청 기한은 ${deadlineMatch[1].replace(/\./g, "월 ")}일까지라고 합니다.`,
+        `${deadlineMatch[1].replace(/\./g, "월 ")}일 마감이에요.`,
+      ];
+      deadlineSentence = deadlineVariations[index % deadlineVariations.length] + " ";
     }
 
     let mediaSentence = "";
     if (notice.attachments > 0 && notice.images > 0) {
-      mediaSentence = `이 공지사항에는 ${notice.attachments}개의 첨부 파일과 ${notice.images}개의 이미지가 함께 제공됩니다. `;
+      mediaSentence = `첨부 파일 ${notice.attachments}개와 이미지 ${notice.images}개가 함께 제공됩니다. `;
     } else if (notice.attachments > 0) {
-      mediaSentence = `${notice.attachments}개의 첨부 파일이 함께 제공됩니다. `;
+      const fileVariations = [
+        `${notice.attachments}개의 첨부 파일이 함께 제공됩니다.`,
+        `관련 파일 ${notice.attachments}개를 다운로드하실 수 있습니다.`,
+        `${notice.attachments}개 파일이 첨부되어 있습니다.`,
+      ];
+      mediaSentence = fileVariations[index % fileVariations.length] + " ";
     } else if (notice.images > 0) {
-      mediaSentence = `${notice.images}개의 이미지가 함께 제공됩니다. `;
+      mediaSentence = `이미지 ${notice.images}개가 포함되어 있습니다. `;
     }
 
     transcription += `## 세그먼트 ${noticeNum}: [${department}] ${notice.title}
 
 ${featured ? `${featured}\n\n` : ""}**앵커:**
 
-다음은 ${notice.date}에 게시된 ${department}의 중요한 공지사항입니다. ${campus} 캠퍼스에서 전해온 소식인데요, 리포터 ${noticeNum}, 자세히 전해주시겠어요?
+${anchorIntro(notice.date, department, campus, noticeNum)}
 
 **리포터 ${noticeNum}:**
 
-네, 앵커님. ${department}에서 "${notice.title}" 제목의 공지를 발표했습니다. ${categorySentence}${deadlineSentence}
+${reporterStart(department, notice.title)} ${categoryPhrase} ${deadlineSentence}
 
 ${
   notice.excerpt
-    ? `공지 내용을 살펴보면, ${notice.excerpt}${notice.excerpt.length > 280 ? "..." : ""} 이와 같이 안내하고 있습니다. `
-    : `${department}에서 발표한 이번 공지는 학생 여러분들께 중요한 정보를 담고 있습니다. `
+    ? `${contentIntro} ${notice.excerpt}${notice.excerpt.length > 280 ? "..." : ""} ${contentOutro} `
+    : `${department}에서 학생들을 위한 안내 사항을 게시했습니다. `
 }${mediaSentence}
 
 **앵커:**
 
-네, 좋은 정보 감사합니다. ${
-      notice.attachments > 0 || notice.images > 0
-        ? `청취자 여러분께서는 경희대학교 공식 공지사항 게시판에서 첨부 자료를 확인하실 수 있습니다.`
-        : `자세한 내용은 경희대학교 공식 공지사항 게시판을 방문해 주시기 바랍니다.`
-    }
+${anchorResponse}
 
 ---
 
