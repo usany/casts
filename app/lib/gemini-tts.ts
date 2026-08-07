@@ -60,7 +60,7 @@ export async function generateMultiSpeakerAudio(
     .getGenerativeModel({ model: 'gemini-3.1-flash-tts-preview' })
     .generateContent({
       contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
-      generationConfig: config,
+      generationConfig: config as any,
     });
 
   const audioData =
