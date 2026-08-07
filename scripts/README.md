@@ -60,6 +60,49 @@ node scripts/generate-broadcast.mjs
 **Output:**
 - `NEWS_BROADCAST.txt` - Formatted news broadcast with weekly summaries
 
+## `enhance-broadcast-korean.mjs`
+
+Enhances Korean broadcast transcriptions with detailed content descriptions from the week files.
+
+**Features:**
+- Extracts full notice content from week markdown files
+- Adds deadline information (⏰ 마감)
+- Classifies notices by category (모집/행사/채용/수강신청)
+- Includes full excerpt text from original notices
+- Preserves department and campus information
+- Generates natural Korean reporter dialogue with substantive content
+
+**Usage:**
+
+```bash
+node scripts/enhance-broadcast-korean.mjs
+```
+
+**Output:**
+- `week*_broadcast_transcription_ko_enhanced.md` - Enhanced Korean transcriptions with rich content descriptions
+
+**Output Example:**
+
+```markdown
+## 세그먼트 1: [창업교육센터] KHU Valley Program(KVP) 15기 모집 안내
+
+**리포터:**
+
+물론이죠! "[창업교육센터] KHU Valley Program(KVP) 15기 모집 안내"
+
+**주요 정보:** ⏰ 마감: 7.31 
+
+공지사항의 카테고리: "모집"
+
+**공지 내용:** "창업교육센터에서는 KHU Valley Program(KVP) 15기를 모집 하오니 학생 여러분의 많은 관심과 적극적인 신청을 부탁드립니다..."
+```
+
+This differs from the standard Korean transcription by including:
+- Extracted deadline information
+- Category classification
+- Full content excerpts
+- More detailed reporter descriptions
+
 ## NPM Scripts
 
 Add to `package.json`:
@@ -68,6 +111,10 @@ Add to `package.json`:
 "scripts": {
   "crawl": "node scripts/crawl-khu-robust.mjs",
   "broadcast": "node scripts/generate-broadcast.mjs",
+  "generate:broadcast-transcriptions": "node scripts/generate-broadcast-transcriptions.mjs",
+  "translate:broadcast-ko": "node scripts/translate-broadcast-to-korean.mjs",
+  "enhance:broadcast-ko": "node scripts/enhance-broadcast-korean.mjs",
+  "broadcast:ko": "npm run generate:broadcast-transcriptions && npm run translate:broadcast-ko && npm run enhance:broadcast-ko",
   "news": "npm run crawl && npm run broadcast"
 }
 ```
@@ -75,9 +122,13 @@ Add to `package.json`:
 **Quick commands:**
 
 ```bash
-npm run crawl          # Crawl notices
-npm run broadcast      # Generate news broadcast
-npm run news           # Crawl + broadcast in sequence
+npm run crawl                              # Crawl notices
+npm run broadcast                          # Generate news broadcast
+npm run generate:broadcast-transcriptions  # Generate English broadcast transcriptions
+npm run translate:broadcast-ko             # Translate to Korean
+npm run enhance:broadcast-ko               # Enhance with detailed content descriptions
+npm run broadcast:ko                       # Full workflow: English → Korean → Enhanced Korean
+npm run news                               # Crawl + broadcast in sequence
 ```
 
 ## Output Format

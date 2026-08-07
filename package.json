@@ -10,7 +10,8 @@
     "broadcast": "node scripts/generate-broadcast.mjs",
     "generate:broadcast-transcriptions": "node scripts/generate-broadcast-transcriptions.mjs",
     "translate:broadcast-ko": "node scripts/translate-broadcast-to-korean.mjs",
-    "broadcast:ko": "npm run generate:broadcast-transcriptions && npm run translate:broadcast-ko",
+    "enhance:broadcast-ko": "node scripts/enhance-broadcast-korean.mjs",
+    "broadcast:ko": "npm run generate:broadcast-transcriptions && npm run translate:broadcast-ko && npm run enhance:broadcast-ko",
     "news": "npm run crawl && npm run broadcast"
   },
   "dependencies": {
