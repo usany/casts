@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI, types } from '@google/generative-ai';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AVAILABLE_VOICES, PrebuiltVoice } from './voices';
 
 interface SpeakerConfig {
   name: string;
@@ -116,18 +117,4 @@ export function createConversationPrompt(
   return `TTS the following conversation between ${speakerList}:\n${dialogueLines}`;
 }
 
-/**
- * Available prebuilt voices (from Gemini API documentation)
- */
-export const AVAILABLE_VOICES = [
-  'Kore',
-  'Puck',
-  'Breeze',
-  'Juniper',
-  'Chime',
-  'Echo',
-  'Orbit',
-  'Sage',
-] as const;
 
-export type PrebuiltVoice = (typeof AVAILABLE_VOICES)[number];

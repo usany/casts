@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AVAILABLE_VOICES } from '@/app/lib/gemini-tts';
+import { AVAILABLE_VOICES } from '@/app/lib/voices';
 
 interface Speaker {
   name: string;
