@@ -64,7 +64,7 @@ export async function generateMultiSpeakerAudio(
     });
 
   const audioData =
-    response.response.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
+    response.response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
   if (!audioData) {
     throw new Error('Failed to generate audio from Gemini API');
