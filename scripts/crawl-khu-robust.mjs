@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,12 +8,13 @@ const BASE = 'https://www.khu.ac.kr/kor/user/bbs/BMSR00040'
 const MENU_NO = process.argv[2] || '200316'
 const OUT_DIR = process.argv[3] || join(__dirname, '..', 'khu-notices-2026-07')
 const IMG_DIR = join(OUT_DIR, 'images')
+const DOWNLOAD_IMAGES = false  // Set to false to skip image downloads
 const BOARD_NAMES = { '200316': '일반', '200317': '학사', '200318': '장학' }
 const BOARD_NAME = BOARD_NAMES[MENU_NO] || '공지사항'
 
 const START = new Date('2026-06-29T00:00:00+09:00')
 const END = new Date('2026-08-02T23:59:59+09:00')
-const WEEK0_MON = new Date('2026-06-29T00:00:00+09:00') // Monday on or before Jul 1, 2026
+const WEEK0_MON = new Date('2026-06-29T00:00:00+09:00')
 const DAY_MS = 86400000
 
 function weekNumber(dateStr) {
@@ -34,11 +35,14 @@ function weekLabel(w) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function downloadImage(url, filepath) {
+async function downloadImage(url, filepath, ctx) {
   try {
     const imgPage = await ctx.newPage()
     const resp = await imgPage.goto(url, { waitUntil: 'load', timeout: 30000 })
-    if (!resp || !resp.ok()) { await imgPage.close(); return false }
+    if (!resp || !resp.ok()) { 
+      await imgPage.close()
+      return false 
+    }
     const buf = await resp.body()
     writeFileSync(filepath, buf)
     await imgPage.close()
@@ -63,118 +67,144 @@ async function crawlList() {
   let emptyPages = 0
 
   while (pageIndex <= 50) {
-    await page.goto(
-      `${BASE}/list.do?menuNo=${MENU_NO}&pageIndex=${pageIndex}`,
-      { waitUntil: 'domcontentloaded' }
-    )
-    await page.waitForSelector('table.board01 tbody tr')
+    try {
+      await page.goto(
+        `${BASE}/list.do?menuNo=${MENU_NO}&pageIndex=${pageIndex}`,
+        { waitUntil: 'domcontentloaded', timeout: 30000 }
+      )
+      await page.waitForSelector('table.board01 tbody tr', { timeout: 10000 })
 
-    const rows = await page.$$eval('table.board01 tbody tr', (trs) =>
-      trs.map((tr) => {
-        const tds = tr.querySelectorAll('td')
-        const link = tr.querySelector('td.tal a[href*="view("]')
-        const href = link ? link.getAttribute('href') : ''
-        const idMatch = href.match(/view\('(\d+)'/)
-        const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '')
-        const campus =
-          tr.querySelector('.txtBox01')?.textContent.trim() || ''
-        const title = txt(link)
-          .replace(campus, '')
-          .replace(/^\s*\[\w+\]\s*/, '')
-          .trim()
-        return {
-          boardId: idMatch ? idMatch[1] : null,
-          category: txt(tds[0]),
-          campus,
-          title,
-          author: txt(tds[2]),
-          date: txt(tds[3]),
-          hits: txt(tds[4]),
-        }
+      const rows = await page.$$eval('table.board01 tbody tr', (trs) =>
+        trs.map((tr) => {
+          const tds = tr.querySelectorAll('td')
+          const link = tr.querySelector('td.tal a[href*="view("]')
+          const href = link ? link.getAttribute('href') : ''
+          const idMatch = href.match(/view\('(\d+)'/)
+          const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '')
+          const campus =
+            tr.querySelector('.txtBox01')?.textContent.trim() || ''
+          const title = txt(link)
+            .replace(campus, '')
+            .replace(/^\s*\[\w+\]\s*/, '')
+            .trim()
+          return {
+            boardId: idMatch ? idMatch[1] : null,
+            category: txt(tds[0]),
+            campus,
+            title,
+            author: txt(tds[2]),
+            date: txt(tds[3]),
+            hits: txt(tds[4]),
+          }
+        })
+      )
+
+      const inRange = rows.filter((r) => {
+        if (!r.date) return false
+        const d = new Date(`${r.date}T00:00:00+09:00`)
+        return !isNaN(d) && d >= START && d <= END
       })
-    )
+      items.push(...inRange)
 
-    const inRange = rows.filter((r) => {
-      if (!r.date) return false
-      const d = new Date(`${r.date}T00:00:00+09:00`)
-      return !isNaN(d) && d >= START && d <= END
-    })
-    items.push(...inRange)
+      const maxDate = rows
+        .map((r) => new Date(`${r.date}T00:00:00+09:00`).getTime())
+        .filter((t) => !isNaN(t))
+      const pageMax = maxDate.length ? Math.max(...maxDate) : 0
 
-    const maxDate = rows
-      .map((r) => new Date(`${r.date}T00:00:00+09:00`).getTime())
-      .filter((t) => !isNaN(t))
-    const pageMax = maxDate.length ? Math.max(...maxDate) : 0
+      console.log(
+        `page ${pageIndex}: ${inRange.length} in range (page max ${new Date(
+          pageMax
+        ).toISOString().slice(0, 10)})`
+      )
 
-    console.log(
-      `page ${pageIndex}: ${inRange.length} in range (page max ${new Date(
-        pageMax
-      ).toISOString().slice(0, 10)})`
-    )
+      if (rows.length === 0 || pageMax < START.getTime()) {
+        emptyPages++
+        if (emptyPages >= 2) break
+      } else {
+        emptyPages = 0
+      }
 
-    if (rows.length === 0 || pageMax < START.getTime()) {
+      pageIndex++
+      await sleep(300)
+    } catch (err) {
+      console.error(`⚠️  Error on page ${pageIndex}:`, err.message)
       emptyPages++
-      if (emptyPages >= 2) break
-    } else {
-      emptyPages = 0
+      if (emptyPages >= 3) break
+      pageIndex++
+      await sleep(1000)
     }
-
-    pageIndex++
-    await sleep(300)
   }
 
   return items
 }
 
-async function crawlDetail(item) {
-  await page.goto(
-    `${BASE}/view.do?menuNo=${MENU_NO}&boardId=${item.boardId}`,
-    { waitUntil: 'domcontentloaded' }
-  )
-  await page.waitForSelector('.board02')
-
-  const detail = await page.evaluate(() => {
-    const board = document.querySelector('.board02')
-    const q = (sel) => board.querySelector(sel)
-    const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '')
-
-    const titleEl = q('.row .tit p.txt06')
-    const contentEl = q('.row.contents')
-
-    const images = contentEl
-      ? [...contentEl.querySelectorAll('img')].map((img) => img.src)
-      : []
-
-    const attachments = [
-      ...board.querySelectorAll('.row.addFile a'),
-    ].map((a) => ({
-      name: txt(a.querySelector('.txt06')) || txt(a),
-      href: a.href,
-    }))
-
-    return {
-      title: txt(titleEl),
-      date: txt(q('.dateBox .date')),
-      hits: txt(q('.dateBox .hits')),
-      author: txt(q('.tit.txtWriter')),
-      contentText: contentEl ? contentEl.innerText.trim() : '',
-      contentHtml: contentEl ? contentEl.innerHTML : '',
-      images,
-      attachments,
+async function crawlDetail(item, ctx) {
+  try {
+    const detailPage = await ctx.newPage()
+    await detailPage.goto(
+      `${BASE}/view.do?menuNo=${MENU_NO}&boardId=${item.boardId}`,
+      { waitUntil: 'domcontentloaded', timeout: 30000 }
+    )
+    
+    // Wait for content, but don't fail if it doesn't exist
+    try {
+      await detailPage.waitForSelector('.board02', { timeout: 5000 })
+    } catch {
+      await detailPage.close()
+      return item
     }
-  })
 
-  const localImages = []
-  for (let i = 0; i < detail.images.length; i++) {
-    const url = detail.images[i]
-    const localPath = imageLocalPath(item.boardId, i, url)
-    const ok = await downloadImage(url, localPath)
-    if (ok) localImages.push(localPath)
+    const detail = await detailPage.evaluate(() => {
+      const board = document.querySelector('.board02')
+      if (!board) return {}
+
+      const q = (sel) => board.querySelector(sel)
+      const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '')
+
+      const titleEl = q('.row .tit p.txt06')
+      const contentEl = q('.row.contents')
+
+      const images = contentEl
+        ? [...contentEl.querySelectorAll('img')].map((img) => img.src)
+        : []
+
+      const attachments = [
+        ...board.querySelectorAll('.row.addFile a'),
+      ].map((a) => ({
+        name: txt(a.querySelector('.txt06')) || txt(a),
+        href: a.href,
+      }))
+
+      return {
+        title: txt(titleEl),
+        date: txt(q('.dateBox .date')),
+        hits: txt(q('.dateBox .hits')),
+        author: txt(q('.tit.txtWriter')),
+        contentText: contentEl ? contentEl.innerText.trim() : '',
+        contentHtml: contentEl ? contentEl.innerHTML : '',
+        images,
+        attachments,
+      }
+    })
+
+    const localImages = []
+    if (DOWNLOAD_IMAGES) {
+      for (let i = 0; i < detail.images.length; i++) {
+        const url = detail.images[i]
+        const localPath = imageLocalPath(item.boardId, i, url)
+        const ok = await downloadImage(url, localPath, ctx)
+        if (ok) localImages.push(localPath)
+      }
+    }
+    detail.localImages = localImages
+
+    await detailPage.close()
+    await sleep(200)
+    return { ...item, ...detail }
+  } catch (err) {
+    console.error(`⚠️  Error crawling detail for ${item.boardId}:`, err.message)
+    return item
   }
-  detail.localImages = localImages
-
-  await sleep(200)
-  return { ...item, ...detail }
 }
 
 console.log('Crawling list pages...')
@@ -191,7 +221,7 @@ const unique = items.filter((i) => {
 console.log('Crawling detail pages...')
 const results = []
 for (let i = 0; i < unique.length; i++) {
-  const r = await crawlDetail(unique[i])
+  const r = await crawlDetail(unique[i], ctx)
   results.push(r)
   console.log(`  [${i + 1}/${unique.length}] ${r.date} - ${r.title}`)
 }
@@ -205,7 +235,7 @@ for (const w of [1, 2, 3, 4, 5]) {
 }
 
 mkdirSync(OUT_DIR, { recursive: true })
-mkdirSync(IMG_DIR, { recursive: true })
+if (DOWNLOAD_IMAGES) mkdirSync(IMG_DIR, { recursive: true })
 
 for (const w of [1, 2, 3, 4, 5]) {
   const list = byWeek[w]
