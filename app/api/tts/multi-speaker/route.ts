@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Return audio as response
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(new Uint8Array(audioBuffer), {
       headers: {
         'Content-Type': 'audio/wav',
         'Content-Disposition': 'attachment; filename="output.wav"',
