@@ -1,5 +1,5 @@
 ---
-name: art-director
+name: collector
 description: 동화 시각 스타일 정의자 + 장면별 이미지 프롬프트 작성자. 스토리 시나리오 markdown을 입력으로 받아, 일관된 비주얼 스타일 가이드와 Cloudflare Workers AI 투입할 영문 프롬프트를 생성한다.
 model: opus
 tools: ["*"]
@@ -57,6 +57,7 @@ tools: ["*"]
 ## 프롬프트 작성 패턴
 
 각 장면 프롬프트는 다음 순서로 작성:
+
 1. `[Art style]` — "Soft watercolor children's book illustration, ..."
 2. `[Scene description]` — 구도, 행동, 배경
 3. `[Character]` — character_signature 그대로
@@ -69,7 +70,7 @@ tools: ["*"]
 ## 팀 통신 프로토콜
 
 - 캐릭터 외모가 모호하면 storyteller 에게 `SendMessage` 로 질문
-- 프롬프트 완료 시 illustrator 에게 알림: "프롬프트 N개 준비 완료, _workspace/02_art_director_prompts.json"
+- 프롬프트 완료 시 illustrator 에게 알림: "프롬프트 N개 준비 완료, \_workspace/02_art_director_prompts.json"
 - qa-reviewer 가 일관성 문제 보고 시 해당 프롬프트 보강 후 저장
 
 ## 후속 작업

@@ -2,15 +2,15 @@
 
 ## 하네스: Radio News 자동 제작
 
-**목표:** 시나리오 작성 → 일관된 그림책 일러스트 → 정적 HTML 책 뷰어를 한 번에 완성.
+**목표:** Scraping this week's KHU notice board → Summarize the notice contents → Radio news generation.
 
-**트리거:** new book 요청이 들어오면 `fairy-tale-orchestrator` 스킬을 사용하라. 단순 질문(예: "이 폴더에 뭐가 있어?") 은 직접 응답.
+**트리거:** need news 요청이 들어오면 `news-orchestrator` 스킬을 사용하라. 단순 질문(예: "이 폴더에 뭐가 있어?") 은 직접 응답.
 
-**에이전트:** `.claude/agents/` — storyteller, art-director, illustrator, book-builder, qa-reviewer
-**스킬:** `.claude/skills/` — fairy-tale-orchestrator (오케스트레이터), story-writing, art-direction, image-generation-batch, book-viewer
-**산출물 위치:** `book/` (최종), `_workspace/` (중간)
+**에이전트:** `.claude/agents/` — collector, ocr-director, scenarist, news-builder, qa-reviewer
+**스킬:** `.claude/skills/` — news-orchestrator (오케스트레이터), scraping, ocr-processing, scenario-direction, news-building, reviewing
+**산출물 위치:** `news/` (최종), `_workspace/` (중간)
 
-**이미지 생성:** Claude의 이미지 생성 기능을 사용합니다. 외부 의존성 없음.
+**Speech 생성:** Gemini-tts 생성 기능을 사용합니다.
 
 **변경 이력:**
 
