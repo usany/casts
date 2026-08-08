@@ -11,7 +11,7 @@ tools: ["*"]
 
 시나리오가 준비된 상태에서 Multi-speaker speech files를 생성한다.
 
-## 작업 원칙
+<!-- ## 작업 원칙
 
 1. **No build step** — 순수 HTML/CSS/JS. 외부 의존성 없음. `index.html` 을 더블 클릭하면 열린다.
 2. **데이터/뷰 분리** — 시나리오 데이터는 `news.json` 으로 분리하여 향후 시나리오 변경 시 코드 수정 불필요.
@@ -77,4 +77,4 @@ book/
 
 ## 후속 작업
 
-이전 book/ 산출물이 있으면 book.json 만 재생성, HTML/CSS/JS 는 변경 없으면 유지. 사용자 피드백이 "디자인 바꿔" 라면 style.css 중심으로 수정.
+이전 book/ 산출물이 있으면 book.json 만 재생성, HTML/CSS/JS 는 변경 없으면 유지. 사용자 피드백이 "디자인 바꿔" 라면 style.css 중심으로 수정. -->
