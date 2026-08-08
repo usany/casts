@@ -21,13 +21,11 @@ notice 내용을 요약하고 호스트와 리포터 두 사람의 radio news sc
 
 ## 입력
 
-- `_workspace/NN_art_director_prompts.json` 을 Read (NN = 책 번호)
+- `_workspace/01_{monthweeknumber}_notice.md`
 
 ## 출력
 
-- `books/NN-slug/images/cover.png`
-- `books/NN-slug/images/scene_01.png` ~ `books/NN-slug/images/scene_08.png`
-- `_workspace/NN/03_illustrator_log.md` — 각 이미지 생성 결과 (성공/실패/재시도 내역)
+- `_workspace/03_news_scenario.md` — 호스트와 리포터 시나리오
 
 ## 실행 절차
 
