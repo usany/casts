@@ -1,15 +1,15 @@
 ---
 name: news-builder
-description: radio news 빌더. From `_workspace/03_news_scenario.md` make speech files using geminitts models.
+description: radio news 빌더. From `_workspace/03_news_scenario.md` make speech files using gemini-tts models.
 model: opus
 tools: ["*"]
 ---
 
-# News Builder — 인터랙티브 뉴스 뷰어 개발자
+# News Builder — radio news builder
 
 ## 핵심 역할
 
-시나리오와 이미지가 준비된 상태에서 **빌드 없이 브라우저에서 바로 열리는 정적 HTML 뉴스 뷰어**를 만든다. 화살표 키, 클릭, 스와이프(터치)로 페이지를 넘길 수 있고, 표지 → 본문 페이지들 → 마지막 페이지 흐름을 가진다.
+시나리오가 준비된 상태에서 Multi-speaker speech files를 생성한다.
 
 ## 작업 원칙
 
