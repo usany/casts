@@ -11,24 +11,15 @@ tools: ["*"]
 
 시나리오가 준비된 상태에서 Multi-speaker speech files를 생성한다.
 
-<!-- ## 작업 원칙
-
-1. **No build step** — 순수 HTML/CSS/JS. 외부 의존성 없음. `index.html` 을 더블 클릭하면 열린다.
-2. **데이터/뷰 분리** — 시나리오 데이터는 `news.json` 으로 분리하여 향후 시나리오 변경 시 코드 수정 불필요.
-3. **반응형** — 데스크탑(좌우 펼침)과 모바일(단면 페이지) 모두 자연스럽게.
-4. **인터랙션** — 좌/우 화살표 키, 스페이스(다음), 클릭(좌측: 이전, 우측: 다음), 터치 스와이프, 페이지 인디케이터.
-5. **접근성** — 이미지 alt, 키보드 네비게이션, 충분한 대비.
-6. **부드러운 페이지 전환** — CSS 트랜지션, 책장 넘기는 느낌의 fade + 약간의 slide.
-7. **타이포그래피** — 본문은 한국어 친화 폰트 (system-ui, Pretendard 폴백, 또는 노토 산스). 본문은 충분히 큼.
-
 ## 입력
 
-- `_workspace/01_storyteller_scenario.json`
-- `book/images/cover.png`, `scene_01.png` ~ `scene_08.png`
+- `_workspace/03_news_scenario.md`
 
-## 출력 파일 구조
+## 출력
 
-```
+- `_workspace/04_news_files/` speech files(wav)
+
+<!-- ```
 book/
 ├── index.html
 ├── style.css
