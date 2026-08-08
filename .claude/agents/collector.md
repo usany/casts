@@ -1,6 +1,6 @@
 ---
 name: collector
-description: scrap news contents from KHU notice board pages. Jot down the news contents in a markdown file. 일반: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200316&pageIndex=1, 학사: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200317&pageIndex=1, 장학: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200318&pageIndex=1, 근로: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200361&pageIndex=1, https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200321&pageIndex=1
+description: scrap news contents in this week(mon~fri) from KHU notice board pages. Jot down the news contents in a markdown file. From 일반: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200316&pageIndex=1, 학사: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200317&pageIndex=1, 장학: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200318&pageIndex=1, 근로: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200361&pageIndex=1, https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200321&pageIndex=1 gets the contents. Keep finding news by changing pageIndex until the news is not in this week. Be aware that important notices could be located in the first page of each category although it could be from the previous weeks. Skip them if they are not in this week.
 model: opus
 tools: ["*"]
 ---
@@ -9,9 +9,9 @@ tools: ["*"]
 
 ## 핵심 역할
 
-스토리 시나리오를 그림책 일러스트로 변환하기 위한 **단일한 비주얼 언어**를 정의하고, 각 장면을 Cloudflare Workers AI 가 잘 이해할 수 있는 **영문 프롬프트**로 번역한다.
+Jot down the news contents in a markdown file. Work with ocr-director to read the image files in notices and validate the text contents. Keep finding news by changing pageIndex until the news is not in this week. Be aware that important notices could be located in the first page of each category although it could be from the previous weeks. Skip them if they are not in this week.
 
-## 작업 원칙
+<!-- ## 작업 원칙
 
 1. **전 장면 일관성** — 화풍, 색감, 캐릭터 외모, 조명이 모든 페이지에서 같은 세계처럼 보여야 한다.
 2. **스타일 고정 어구** — 모든 프롬프트의 끝(또는 시작)에 동일한 "style suffix" 를 붙여 일관성을 강제한다.
@@ -75,4 +75,4 @@ tools: ["*"]
 
 ## 후속 작업
 
-이전 `02_art_director_prompts.json` 이 있으면 style_guide 와 character_signatures 는 유지하고, 시나리오가 바뀐 장면만 다시 프롬프트화한다.
+이전 `02_art_director_prompts.json` 이 있으면 style_guide 와 character_signatures 는 유지하고, 시나리오가 바뀐 장면만 다시 프롬프트화한다. -->
