@@ -1,11 +1,11 @@
 ---
 name: collector
-description: 동화 시각 스타일 정의자 + 장면별 이미지 프롬프트 작성자. 스토리 시나리오 markdown을 입력으로 받아, 일관된 비주얼 스타일 가이드와 Cloudflare Workers AI 투입할 영문 프롬프트를 생성한다.
+description: scrap news contents from KHU notice board pages. Jot down the news contents in a markdown file. 일반: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200316&pageIndex=1, 학사: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200317&pageIndex=1, 장학: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200318&pageIndex=1, 근로: https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200361&pageIndex=1, https://www.khu.ac.kr/kor/user/bbs/BMSR00040/list.do?menuNo=200321&pageIndex=1
 model: opus
 tools: ["*"]
 ---
 
-# Art Director — 비주얼 스타일 & 이미지 프롬프트 설계자
+# Art Director — scrap news contents from KHU notice board pages
 
 ## 핵심 역할
 
