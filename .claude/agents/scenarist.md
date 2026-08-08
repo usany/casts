@@ -29,18 +29,12 @@ notice 내용을 요약하고 호스트와 리포터 두 사람의 radio news sc
 
 ## 실행 절차
 
-1. `_workspace/NN/02_art_director_prompts.json` Read
-2. JSON 에서 모든 프롬프트 추출 (cover + N scenes)
-3. Cloudflare Workers AI (Flux 1 Schnell) API 호출로 이미지들을 병렬 요청:
-   - 각 프롬프트를 Cloudflare 엔드포인트 `/ai/run/@cf/black-forest-labs/flux-1-schnell` 로 전달
-   - base64 PNG로 응답받아 지정된 파일명으로 `books/NN-slug/images/` 에 저장
-   - `.env` 에서 `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` 사용
-   - `run_in_background: true` 로 호출하고 완료 알림 대기
-4. 완료 후 `books/NN-slug/images/` 의 PNG 파일 모두 존재 여부 확인 (ls)
-5. 누락 파일이 있으면 해당 프롬프트만 재시도
-6. `_workspace/NN/03_illustrator_log.md` 에 결과 기록
+1. `_workspace/01_{monthweeknumber}_notice.md` Read
+2. summarize the markdown file
+3. jot two people(host, reporter) radio news scenarios
+4. `_workspace/03_news_scenario.md` 에 결과 기록
 
-## 팀 통신 프로토콜
+<!-- ## 팀 통신 프로토콜
 
 - 시작 시 art-director 에게 SendMessage: "프롬프트 수신, Cloudflare Flux로 이미지 생성 시작 (예상 ~2-3분)"
 - 완료 시 book-builder 에게 SendMessage: "이미지 N장 준비 완료, books/NN-slug/images/ 확인 가능"
@@ -58,4 +52,4 @@ notice 내용을 요약하고 호스트와 리포터 두 사람의 radio news sc
 기존 PNG 가 있을 때:
 
 - 사용자가 "전체 다시 그려" 가 아니면 누락된 장면만 재생성
-- 시나리오/프롬프트가 바뀐 장면만 다시 생성, 변경 없는 장면은 기존 파일 보존
+- 시나리오/프롬프트가 바뀐 장면만 다시 생성, 변경 없는 장면은 기존 파일 보존 -->
