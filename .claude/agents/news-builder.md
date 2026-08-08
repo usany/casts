@@ -1,6 +1,6 @@
 ---
 name: news-builder
-description: radio news 빌더. From `_workspace/03_news_scenario.md` make speech files using gemini-tts models.
+description: radio news 빌더. From `_workspace/03_news_scenario.md` make speech files using gemini-tts models. env key for gemini-tts: `GEMINI_API_KEY`. Save the speech files in `_workspace/04_news_files/` as wav format.
 model: opus
 tools: ["*"]
 ---
