@@ -40,7 +40,7 @@ description: "radio news 자동 제작 오케스트레이터. scraping the conte
 **실행 모드:** 에이전트 팀
 
 1. Lead: "Spawn collector and ocr-director teammates. collector collects notices in KHU notice board. collector sends image files in notices to ocr-director for validation. ocr-director reads texts from image files and sends them to collector. collector jots down the notices in a markdown file."
-   - collector → `_workspace/01_{monthweeknumber}_notice.md` + `_workspace/01_scraping_report.md` 출력
+   - collector → `_workspace/01_{monthweeknumber}_notice.md` + `_workspace/01_notice_images/` + `_workspace/01_scraping_report.md` 출력
    - ocr-director → `_workspace/02_ocr_results.md` 출력
 2. Teammates automatically coordinate through shared task list and direct messaging until PASS
 3. Lead receives completion notification
