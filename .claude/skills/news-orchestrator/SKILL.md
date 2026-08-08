@@ -17,13 +17,13 @@ description: "radio news 자동 제작 오케스트레이터. scraping the conte
 
 ## 에이전트 구성
 
-| 팀원         | agent_type   | 역할                                                                       | 출력                                                                             |
-| ------------ | ------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| collector    | collector    | KHU notice board scraping                                                  | `_workspace/01_{monthweeknumber}_notice.md` + `_workspace/01_scraping_report.md` |
-| ocr-director | ocr-director | OCR processing to notify collector to jot notices in text in markdown file | `_workspace/02_ocr_results.md`                                                   |
-| scenarist    | scenarist    | 뉴스 시나리오 작성                                                         | `_workspace/03_news_scenario.md`                                                 |
-| news-builder | news-builder | 뉴스 파일 빌드                                                             | `_workspace/04_news_files/`                                                      |
-| qa-reviewer  | qa-reviewer  | confirm news file 검증                                                     | `_workspace/05_qa_report.md`                                                     |
+| 팀원         | agent_type   | 역할                                                                       | 출력                                                                                                              |
+| ------------ | ------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| collector    | collector    | KHU notice board scraping                                                  | `_workspace/01_{monthweeknumber}_notice.md` + `_workspace/01_notice_images/` + `_workspace/01_scraping_report.md` |
+| ocr-director | ocr-director | OCR processing to notify collector to jot notices in text in markdown file | `_workspace/02_ocr_results.md`                                                                                    |
+| scenarist    | scenarist    | 뉴스 시나리오 작성                                                         | `_workspace/03_news_scenario.md`                                                                                  |
+| news-builder | news-builder | 뉴스 파일 빌드                                                             | `_workspace/04_news_files/`                                                                                       |
+| qa-reviewer  | qa-reviewer  | confirm news file 검증                                                     | `_workspace/05_qa_report.md`                                                                                      |
 
 ## 워크플로우
 

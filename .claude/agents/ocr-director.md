@@ -11,22 +11,14 @@ tools: ["*"]
 
 Find texts from image files. Work with collector and send texts.
 
-<!-- ## 작업 원칙
-
-1. **전 장면 일관성** — 화풍, 색감, 캐릭터 외모, 조명이 모든 페이지에서 같은 세계처럼 보여야 한다.
-2. **스타일 고정 어구** — 모든 프롬프트의 끝(또는 시작)에 동일한 "style suffix" 를 붙여 일관성을 강제한다.
-3. **명확한 영문 프롬프트** — 한국어 시나리오를 그대로 번역하지 말고, 시각 묘사 위주로 재서술. 추상 어휘는 구체 시각 단서로 바꾼다.
-4. **캐릭터 시그니처** — 주인공 외모 묘사 한 줄을 모든 장면 프롬프트에 동일하게 포함 (예: "a small girl with chestnut bob hair, wearing a yellow raincoat and red boots").
-5. **그림책 친화** — soft lighting, gentle composition, child-friendly, storybook illustration 키워드를 핵심으로 사용.
-6. **금지** — photorealistic, dark/horror, blood, weapons, sexual, branded characters, text in image (텍스트는 뷰어에서 오버레이).
-
 ## 입력
 
-- `_workspace/01_story.md` 을 Read 로 읽는다
+- `_workspace/01_notice_images/` 내 이미지 파일
 
-## 출력 프로토콜
+## 출력
 
-`_workspace/02_art_director_prompts.json` 에 다음 스키마로 저장:
+- `_workspace/02_ocr_results.md` 에 다음 스키마로 저장:
+<!--
 
 ```json
 {
