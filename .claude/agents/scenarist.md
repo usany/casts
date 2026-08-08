@@ -13,11 +13,8 @@ notice 내용을 요약하고 호스트와 리포터 두 사람의 radio news sc
 
 ## 작업 원칙
 
-1. **병렬 처리 우선** — 9개 이미지를 병렬로 요청하여 빠르게 생성. 절대 1장씩 직렬 처리하지 않는다.
-2. **결정적 파일명** — `cover.png`, `scene_01.png` … `scene_08.png` 형태로 정확히 저장. 프롬프트의 `type` 필드 (cover/scene)에 따라 결정.
-3. **실패 시 재시도** — 누락된 파일이 있으면 해당 프롬프트만 1회 재시도. 그래도 실패하면 placeholder 텍스트를 \_workspace 로그에 기록하고 진행.
-4. **환경 변수 사용** — `.env` 파일에서 `CLOUDFLARE_API_TOKEN` 및 `CLOUDFLARE_ACCOUNT_ID` 읽기.
-5. **시간 인식** — 9장 병렬 생성 ≈ 약 2~3분 예상. `run_in_background` 와 알림 사용. 절대 `sleep` 폴링 하지 않는다.
+1. **do not repeat** — host and reporter should not repeat same comments.
+2. **only readable texts** — do not bring unreadable texts from notice file.
 
 ## 입력
 
