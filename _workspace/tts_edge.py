@@ -11,6 +11,17 @@ SCENARIO = os.path.join(BASE, "03_news_scenario.md")
 OUT = os.path.join(BASE, "04_news_files")
 os.makedirs(OUT, exist_ok=True)
 
+WEEK_ORDINALS = {"첫째": "w1", "둘째": "w2", "셋째": "w3", "넷째": "w4", "다섯째": "w5", "여섯째": "w6"}
+
+
+def week_prefix(scenario_path):
+    with open(scenario_path) as f:
+        first = f.readline()
+    m = re.search(r"(\d{4})년\s*(\d{1,2})월\s*([가-힣]+) 주", first)
+    if m:
+        return f"{m.group(1)}_{int(m.group(2)):02d}_{WEEK_ORDINALS.get(m.group(3), 'w1')}"
+    return None
+
 VOICES = {"호스트": "ko-KR-SunHiNeural", "리포터": "ko-KR-InJoonNeural"}
 
 WAVE_PARAMS = (1, 2, 24000, 24000, "NONE", "not compressed")
@@ -77,9 +88,11 @@ async def main():
 
     if ok == len(lines):
         paths = [os.path.join(OUT, f"clip_{i:03d}_{speaker}.wav") for i, (speaker, _) in enumerate(lines, 1)]
-        full = os.path.join(OUT, "full_news.wav")
+        prefix = week_prefix(SCENARIO)
+        full_name = f"{prefix}_full_news.wav" if prefix else "full_news.wav"
+        full = os.path.join(OUT, full_name)
         concat_wav(paths, full)
-        print(f"full_news.wav written: {os.path.getsize(full)} bytes")
+        print(f"{full_name} written: {os.path.getsize(full)} bytes")
 
 
 if __name__ == "__main__":
