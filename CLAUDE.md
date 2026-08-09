@@ -16,3 +16,5 @@
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 | ---- | --------- | ---- | ---- |
+| 2026-08-09 | 2026-08-03~07 주차 KHU 공지 34건 스크래핑 → 라디오 뉴스 시나리오(44줄) → TTS 음성 클립 44개 + full_news.wav(8:40) 생성. Gemini TTS 무료 쿼터 초과로 macOS `say`(Yuna) 폴백. 최종 산출물을 news/2026_08_w1/ 및 public/news/2026-08-08-week1.wav로 복사하고 앱 EPISODES에 연결 | _workspace/, news/, public/news/, app/lib/utils.js | 이번 주 라디오 뉴스 자동 제작 |
+| 2026-08-09 | `say` 폴백 음성(Yuna, 단일 화자)을 `edge-tts`로 교체 재생성: 호스트=ko-KR-SunHiNeural(여), 리포터=ko-KR-InJoonNeural(남) 화자 구분. full_news.wav 610.6초(10:10)로 재생성, QA 보고서·EPISODES 갱신. `_workspace/tts_edge.py` 추가 | _workspace/tts_edge.py, _workspace/04_news_files/, news/2026_08_w1/, public/news/, app/lib/utils.js | 교차플랫폼 TTS + 화자별 목소리 구분 |
