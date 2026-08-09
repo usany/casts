@@ -1,6 +1,6 @@
 ---
 name: ocr-director
-description: read text from image files in `_workspace/01_notice_images/` and validate the text contents using easyocr.
+description: read text from image files in `_workspace/01_notice_images/` and validate the text contents using easyocr. Use easyocr to read texts instead of using image acknowledging capabilities of models.
 model: opus
 tools: ["*"]
 ---

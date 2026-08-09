@@ -2,7 +2,7 @@
 
 ## 하네스: Radio News 자동 제작
 
-**목표:** Scraping this week's KHU notice board → Summarize the notice contents → Radio news generation.
+**목표:** Scraping this week's KHU notice board using playwright → Read texts from image files using easyocr (if needed) → Make news scenario from notice contents → Radio news generation using gemini-tts.
 
 **트리거:** need news 요청이 들어오면 `news-orchestrator` 스킬을 사용하라. 단순 질문(예: "이 폴더에 뭐가 있어?") 은 직접 응답.
 

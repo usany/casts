@@ -1,6 +1,6 @@
 ---
 name: scenarist
-description: Summarize notice contents in `_workspace/01_notice.md` and jot two people(host, reporter) radio news scenarios. Be careful not to repeat same comments from both host and reporter.
+description: Summarize notice contents in `_workspace/01_notice.md` and jot two people(host, reporter) radio news scenarios. Be careful not to repeat same comments from both host and reporter. Make sure to include all notices
 model: opus
 tools: ["*"]
 ---
