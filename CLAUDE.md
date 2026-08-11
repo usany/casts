@@ -31,6 +31,9 @@
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 | ---- | --------- | ---- | ---- |
+| 2026-08-11 | cron 진입점을 **bash로 복원**: `cron_wrapper.ts`/`install_cron.ts`(TS 버전 실행 중 `Command aborted` 문제) 폐기하고 `scripts/cron_wrapper.sh` + `scripts/install_cron.sh`(bash) 복원. cron은 `cron_wrapper.sh`가 PATH 복원 후 `npx tsx scripts/run_pipeline.ts` 실행. crontab 재등록 완료 (매주 금 22:00) | scripts/cron_wrapper.sh, scripts/install_cron.sh, crontab | cron 진입점 bash 복원 |
+| 2026-08-11 | 파이프라인을 **TypeScript**(`scripts/run_pipeline.ts`)로 재작성: 스크립트 3개(khu_crawler→scenarist→news_builder)를 순차 실행 + 각 단계 산출물 검증(`requireFile`), 어느 단계가 실패하면 전체 파이프라인 비정상 종료(0이 아닌 exit code). cron 자동화: `scripts/install_cron.sh`로 `0 22 * * 5`(매주 금 22:00) 등록. `package.json`의 `news:pipeline`도 TS로 변경 | scripts/run_pipeline.ts, scripts/install_cron.sh, package.json, crontab | 스크립트 전 과정 파이프라이닝 + cron 예약 (TS 버전) |
+| 2026-08-11 | 세 스크립트(khu_crawler→scenarist→news_builder)를 실패 시 전체 중단되는 파이프라인으로 묶기(Bash 오케스트레이터 → 이후 TS로 대체되어 제거됨) | scripts/run_pipeline.ts | 스크립트 전 과정 파이프라이닝 |
 | 2026-08-11 | `scripts/news_builder.mts` Gemini **Multi-speaker TTS** 로 재작성: 기존 줄 단위 합성/단일모드 토글 대신 `multiSpeakerVoiceConfig`로 호스트/리포터 두 화자를 한 번의 요청에 매핑해 단일 full news 파일 생성(```gemini-3.1-flash-tts-preview```, 호스트=`Kore`, 리포터=`Puck`). 화자 구분됨 + 쿼터 절약. `tsc --noEmit` 검증 완료 | scripts/news_builder.mts | Gemini 原生 Multi-speaker TTS 사용 |
 | 2026-08-11 | `scripts/news_builder.mts` 기본 모드를 **단일 요청/단일 목소리 full news 생성**으로 변경(`--multi`/`--two-voices` 플래그로 기존 화자 구분 모드 선택). 무료쿼터(일 10회) 안에서 한 번에 full news 생성하는 것을 기본값으로 | scripts/news_builder.mts | 기본 동작을 쿼터 절약형 단일 모드로 |
 | 2026-08-11 | `scripts/news_builder.mts`에 `--single` (단일 요청/단일 목소리 full news 생성) 모드와 줄 단위 클립 캐시(resume) 추가, API RetryInfo 지연 존중, mimeType 기반 오디오 판별로 MP3 오판 버그 수정. Gemini TTS 무료쿼터(일 10회) 초과 시 pause 후 재실행으로 이어받음 | scripts/news_builder.mts | 무료쿼터 대응 + 단일 full news 생성 |

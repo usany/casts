@@ -4,7 +4,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "news:pipeline": "tsx scripts/run_pipeline.ts",
+    "news:crawl": "tsx scripts/khu_crawler.ts",
+    "news:scenario": "tsx scripts/scenarist.mts",
+    "news:build": "tsx scripts/news_builder.mts",
+    "news:install": "tsx scripts/install_cron.ts"
   },
   "dependencies": {
     "next": "^14.0.0",
