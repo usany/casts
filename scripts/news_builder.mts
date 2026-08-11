@@ -1,28 +1,31 @@
 /**
  * news_builder.mts — replaces the `news-builder` agent using the Gemini TTS API.
  *
- * Mirrors `.claude/agents/news-builder.md` + `_workspace/tts_gemini_full.py`:
+ * Mirrors `.claude/agents/news-builder.md`. Uses Gemini's native MULTI-SPEAKER
+ * TTS so a SINGLE request produces one audio file with TWO different voices
+ * (host & reporter), which also fits within the free-tier quota.
+ *
  *   1. Reads the scenario file `_workspace/03_news_scenario.md`
  *   2. Parses the host(호스트)/reporter(리포터) speaker lines
- *   3. Synthesizes each speaker line with a DIFFERENT voice via Gemini TTS
- *      (default: host = `puck`, reporter = `charon`)
- *   4. Concatenates all clips back in original order and writes a SINGLE
- *      speech file to `_workspace/04_news_files/{week}_full_news.wav`
+ *   3. Sends the whole scenario as a conversation (with speaker labels) in ONE
+ *      call, mapping each speaker name to its own voice via
+ *      `multiSpeakerVoiceConfig`
+ *   4. Writes the single produced audio to `_workspace/04_news_files/{week}_full_news.wav`
  *
- * Two-person speech: Gemini TTS only accepts ONE voice per request, so each
- * line is synthesized individually with its speaker's voice and then the audio
- * is concatenated in order. The output is still a single wav file.
+ * Reference: https://ai.google.dev/gemini-api/docs/speech-generation
+ *   Multi-speaker: a `multiSpeakerVoiceConfig` object with each speaker (up to 2)
+ *   configured as a `speakerVoiceConfig`. Speaker names must match the labels
+ *   used in the prompt text.
  *
- * API key: read from `GEMINI_API_KEY` in `.env` (or `GEMINI_API_KEY` env var).
- * HOST_VOICE / REPORTER_VOICE (or --host-voice / --reporter-voice) pick the
- * two voices. Available Gemini TTS prebuilt voices include:
+ * API key: read from `GEMINI_API_KEY` in `.env` (or env var).
+ * Voices: `--host-voice` / `--reporter-voice` (or HOST_VOICE / REPORTER_VOICE).
+ * Available Gemini TTS prebuilt voices include:
  *   Puck, Charon, Kore, Fenrir, Aoede, Zephyr, Calliope, Leda, Orus
  *
  * Run (from repo root):
  *   npx tsx scripts/news_builder.mts
- *   npx tsx scripts/news_builder.mts --host-voice=puck --reporter-voice=charon
- *   npx tsx scripts/news_builder.mts --input=_workspace/03_news_scenario.md --output=_workspace/04_news_files
- *   npx tsx scripts/news_builder.mts --single   # one TTS call, single voice (quota-friendly)
+ *   npx tsx scripts/news_builder.mts --host-voice=Kore --reporter-voice=Puck
+ *   npx tsx scripts/news_builder.mts --input=... --output=...
  */
 import * as fsp from "node:fs/promises";
 import * as fss from "node:fs";
@@ -38,9 +41,9 @@ const WORK = path.join(ROOT, "_workspace");
 const DEFAULT_INPUT = path.join(WORK, "03_news_scenario.md");
 const DEFAULT_OUTPUT_DIR = path.join(WORK, "04_news_files");
 
-const DEFAULT_MODEL = "gemini-2.5-flash-preview-tts";
-const DEFAULT_HOST_VOICE = "puck";
-const DEFAULT_REPORTER_VOICE = "charon";
+const DEFAULT_MODEL = "gemini-3.1-flash-tts-preview";
+const DEFAULT_HOST_VOICE = "Kore";
+const DEFAULT_REPORTER_VOICE = "Puck";
 
 const WEEK_ORDINALS: Record<string, string> = {
   첫째: "w1", 둘째: "w2", 셋째: "w3", 넷째: "w4", 다섯째: "w5", 여섯째: "w6",
@@ -56,8 +59,6 @@ interface Options {
   model: string;
   hostVoice: string;
   reporterVoice: string;
-  single: boolean;
-  voice: string;
 }
 
 function parseArgs(argv: string[]): Options {
@@ -67,8 +68,6 @@ function parseArgs(argv: string[]): Options {
     model: process.env.GEMINI_TTS_MODEL ?? DEFAULT_MODEL,
     hostVoice: process.env.HOST_VOICE ?? DEFAULT_HOST_VOICE,
     reporterVoice: process.env.REPORTER_VOICE ?? DEFAULT_REPORTER_VOICE,
-    single: false,
-    voice: process.env.GEMINI_TTS_VOICE ?? "",
   };
   for (const a of argv) {
     if (a.startsWith("--input=")) opts.input = a.slice("--input=".length);
@@ -76,8 +75,6 @@ function parseArgs(argv: string[]): Options {
     else if (a.startsWith("--model=")) opts.model = a.slice("--model=".length);
     else if (a.startsWith("--host-voice=")) opts.hostVoice = a.slice("--host-voice=".length);
     else if (a.startsWith("--reporter-voice=")) opts.reporterVoice = a.slice("--reporter-voice=".length);
-    else if (a.startsWith("--voice=")) opts.voice = a.slice("--voice=".length);
-    else if (a === "--single") opts.single = true;
   }
   return opts;
 }
@@ -129,6 +126,13 @@ function parseScenario(markdown: string): Array<[string, string]> {
   return lines;
 }
 
+/** Build the multi-speaker conversation prompt with speaker labels. */
+function buildConversation(lines: Array<[string, string]>): string {
+  const speakers = ["호스트", "리포터"];
+  const dialogue = lines.map(([sp, text]) => `${sp}: ${text}`).join("\n");
+  return `TTS the following conversation between 호스트 and 리포터:\n${dialogue}\n\n(speakers: ${speakers.join(", ")})`;
+}
+
 /** Build the wav header for raw PCM L16/SAMPLE_RATE mono. */
 function wavHeader(pcmLength: number): Buffer {
   const byteRate = SAMPLE_RATE * NUM_CHANNELS * (BITS_PER_SAMPLE / 8);
@@ -150,11 +154,15 @@ function wavHeader(pcmLength: number): Buffer {
   return header;
 }
 
-/** Call the Gemini TTS generateContent endpoint and return the audio bytes + mime type. */
-async function synthesize(
+/**
+ * Call the Gemini TTS generateContent endpoint with multi-speaker voice config.
+ * Returns the audio bytes + mime type.
+ */
+async function synthesizeMultiSpeaker(
   key: string,
   model: string,
-  voice: string,
+  hostVoice: string,
+  reporterVoice: string,
   text: string,
 ): Promise<{ mimeType: string; data: Buffer }> {
   const url =
@@ -166,7 +174,18 @@ async function synthesize(
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: {
-        voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
+        multiSpeakerVoiceConfig: {
+          speakerVoiceConfigs: [
+            {
+              speaker: "호스트",
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: hostVoice } },
+            },
+            {
+              speaker: "리포터",
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: reporterVoice } },
+            },
+          ],
+        },
       },
     },
   };
@@ -221,12 +240,6 @@ function toWav(mimeType: string, audio: Buffer): Buffer {
   return Buffer.concat([wavHeader(audio.length), audio]);
 }
 
-/** Extract the PCM frames from a standard 44-byte-header wav buffer. */
-function extractPcm(wav: Buffer): Buffer {
-  // Standard RIFF/WAVE with 44-byte header → data starts at offset 44.
-  return wav.subarray(44);
-}
-
 /** Convert an MP3 file to WAV using macOS `afconvert`. */
 function convertMp3ToWav(mp3Path: string, wavPath: string): void {
   const r = spawnSync("afconvert", ["-f", "WAVE", "-d", "LEI16", mp3Path, wavPath], {
@@ -238,17 +251,18 @@ function convertMp3ToWav(mp3Path: string, wavPath: string): void {
   }
 }
 
-/** Synthesize `text` with the given voice, retrying transient API errors and honoring RetryInfo delays. */
+/** Synthesize, retrying transient API errors and honoring RetryInfo delays. */
 async function synthesizeWithRetry(
   key: string,
   model: string,
-  voice: string,
+  hostVoice: string,
+  reporterVoice: string,
   text: string,
 ): Promise<{ mimeType: string; data: Buffer }> {
   let lastErr: unknown;
   for (let attempt = 1; attempt <= 5; attempt++) {
     try {
-      return await synthesize(key, model, voice, text);
+      return await synthesizeMultiSpeaker(key, model, hostVoice, reporterVoice, text);
     } catch (err) {
       lastErr = err;
       const msg = (err as Error).message;
@@ -287,88 +301,35 @@ async function main() {
   }
 
   const lines = parseScenario(scenario);
+  const prompt = buildConversation(lines);
   const outPath = path.join(
     opts.outputDir,
     `${(await weekPrefix(opts.input)) ?? "full_news"}_full_news.wav`,
   );
 
-  // ---- Single-call mode (quota-friendly): synthesize whole script in ONE request. ----
-  if (opts.single) {
-    const fullText = lines.map(([, t]) => t).join(" ");
-    const voice = opts.voice || "puck";
-    console.log(
-      `[news_builder] SINGLE mode: ${lines.length} lines joined → ${fullText.length} chars, one call`,
-    );
-    console.log(`[news_builder] voice=${voice} (model=${opts.model})`);
-    await fsp.mkdir(opts.outputDir, { recursive: true });
-    const { mimeType, data } = await synthesizeWithRetry(key, opts.model, voice, fullText);
-    const wav = toWav(mimeType, data);
-    fss.writeFileSync(outPath, wav);
-    const seconds = wav.subarray(44).length / (SAMPLE_RATE * 2);
-    const bytes = fss.statSync(outPath).size;
-    console.log(
-      `[news_builder] OK ${outPath} (${bytes} bytes, ~${seconds.toFixed(1)}s, single call)`,
-    );
-    return;
-  }
-
   console.log(
-    `[news_builder] read ${scenario.length} chars, ${lines.length} speaker lines from ${opts.input}`,
+    `[news_builder] ${lines.length} speaker lines (${prompt.length} chars) → single multi-speaker TTS call`,
   );
   console.log(
-    `[news_builder] voices: host=${opts.hostVoice}, reporter=${opts.reporterVoice} (model=${opts.model})`,
+    `[news_builder] model=${opts.model} | host=${opts.hostVoice}, reporter=${opts.reporterVoice}`,
   );
 
   await fsp.mkdir(opts.outputDir, { recursive: true });
-  const prefix = (await weekPrefix(opts.input)) ?? "full_news";
+  const { mimeType, data } = await synthesizeWithRetry(
+    key,
+    opts.model,
+    opts.hostVoice,
+    opts.reporterVoice,
+    prompt,
+  );
+  const wav = toWav(mimeType, data);
+  fss.writeFileSync(outPath, wav);
 
-  // Per-line clip cache so interrupted runs (e.g. daily quota limit) can resume.
-  const clipsDir = path.join(opts.outputDir, `.clips_${prefix}`);
-  await fsp.mkdir(clipsDir, { recursive: true });
-  const clipPath = (i: number, voice: string) => path.join(clipsDir, `clip_${String(i).padStart(3, "0")}_${voice}.wav`);
-
-  // Synthesize speaker-by-speaker, keep the original interleaved order.
-  const pcmParts: Buffer[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const [speaker, text] = lines[i];
-    const voice = speaker === "호스트" ? opts.hostVoice : opts.reporterVoice;
-    const tag = `[${i + 1}/${lines.length}] ${speaker}`;
-    const cached = clipPath(i, voice);
-    try {
-      if (fss.existsSync(cached) && fss.statSync(cached).size > 44) {
-        pcmParts.push(extractPcm(fss.readFileSync(cached)));
-        console.log(`${tag} ≤ ${voice} (cached, ${bufferSeconds(pcmParts[pcmParts.length - 1]).toFixed(1)}s)`);
-        continue;
-      }
-      console.log(`${tag} → ${voice} ...`);
-      const { mimeType, data } = await synthesizeWithRetry(key, opts.model, voice, text);
-      const wav = toWav(mimeType, data);
-      fss.writeFileSync(cached, wav);
-      pcmParts.push(extractPcm(wav));
-      console.log(`  ✓ ${bufferSeconds(pcmParts[pcmParts.length - 1]).toFixed(1)}s (${mimeType})`);
-    } catch (err) {
-      console.error(`  ✗ ${(err as Error).message}`);
-      console.error(
-        `[news_builder] paused at segment ${i + 1}. Re-run the command to resume; completed clips are cached in ${clipsDir}`,
-      );
-      process.exit(1);
-    }
-  }
-
-  // Concatenate all PCM frames and write a single wav file.
-  const fullPcm = Buffer.concat(pcmParts);
-  fss.writeFileSync(outPath, Buffer.concat([wavHeader(fullPcm.length), fullPcm]));
-
-  const seconds = fullPcm.length / (SAMPLE_RATE * 2);
+  const seconds = wav.subarray(44).length / (SAMPLE_RATE * 2);
   const bytes = fss.statSync(outPath).size;
   console.log(
-    `[news_builder] OK ${outPath} (${bytes} bytes, ~${seconds.toFixed(1)}s, ${lines.length} segments)`,
+    `[news_builder] OK ${outPath} (${bytes} bytes, ~${seconds.toFixed(1)}s, ${mimeType})`,
   );
-}
-
-/** Seconds represented by a PCM buffer (mono 16-bit @ SAMPLE_RATE). */
-function bufferSeconds(pcm: Buffer): number {
-  return pcm.length / (SAMPLE_RATE * 2);
 }
 
 main().catch((err) => {
