@@ -1,5 +1,5 @@
 export const EPISODES = [
-  { title: "2026-07-27 Week 3 Radio News", podcast: "KHU Radio News", duration: "8:41", url: "/news/2026-07-27-week3.wav" },
+  { title: "2026-07-27 Week 3 Radio News", podcast: "KHU Radio News", duration: "6:08", url: "/news/2026-07-27-week3.wav" },
   { title: "2026-08-08 Week 1 Radio News", podcast: "KHU Radio News", duration: "10:10", url: "/news/2026-08-08-week1.wav" },
   { title: "Newsfront", podcast: "News Podcast", duration: "0:00", url: "/Newsfront.mp3" },
 ]
