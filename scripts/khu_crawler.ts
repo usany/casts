@@ -31,6 +31,7 @@ const ROOT = process.cwd();
 const WORK = path.join(ROOT, "_workspace");
 const IMG_DIR = path.join(WORK, "01_notice_images");
 const NOTICE_MD = path.join(WORK, "01_notice.md");
+const NOTICE_JSON = path.join(WORK, "01_notice.json");
 const SCRAPE_MD = path.join(WORK, "01_scraping_report.md");
 const OCR_MD = path.join(WORK, "02_ocr_results.md");
 const HELPER = path.join(ROOT, "scripts", "easyocr_helper.py");
@@ -266,8 +267,33 @@ async function runOcr(imagePaths: string[]): Promise<OcrResult[]> {
 }
 
 // ----------------------------------------------------------------------------
-// Markdown writers
+// Markdown / JSON writers
 // ----------------------------------------------------------------------------
+async function writeNoticeJson(week: { mon: string; fri: string }, notices: Notice[]) {
+  const payload = {
+    meta: {
+      weekStart: week.mon,
+      weekEnd: week.fri,
+      generatedAt: toDateStr(new Date()),
+      noticeCount: notices.filter((n) => n.scrapedOk).length,
+      categories: CATEGORIES.map((c) => c.name),
+    },
+    notices: notices.map((n) => ({
+      boardId: n.boardId,
+      category: n.category,
+      title: stripRegion(n.title),
+      region: n.region,
+      author: n.author,
+      date: n.date,
+      link: n.link,
+      body: n.body,
+      images: n.images.map((i) => ({ src: i.src, file: i.file })),
+      scrapedOk: n.scrapedOk,
+    })),
+  };
+  await fsp.writeFile(NOTICE_JSON, JSON.stringify(payload, null, 2), "utf8");
+}
+
 async function writeNoticeMd(week: { mon: string; fri: string }, notices: Notice[]) {
   const lines: string[] = [];
   lines.push(`# 경희대학교 공지사항 (${week.mon} ~ ${week.fri})`);
@@ -434,6 +460,7 @@ async function main() {
 
   // Write scraping outputs
   await writeNoticeMd(wk, notices);
+  await writeNoticeJson(wk, notices);
   await writeScrapeMd(wk, notices);
 
   // OCR the images (one python process for the whole batch)
@@ -456,7 +483,7 @@ async function main() {
   }
   await writeOcrMd(wk, notices, ocrByFile);
 
-  console.log(`[crawler] done. ${notices.length} notices written to ${NOTICE_MD}`);
+  console.log(`[crawler] done. ${notices.length} notices written to ${NOTICE_MD} and ${NOTICE_JSON}`);
 }
 
 main().catch((e) => {
