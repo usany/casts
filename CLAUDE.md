@@ -23,14 +23,18 @@
 **news-builder + scenarist 자동화 스크립트:**
 
 - `scripts/scenarist.mts` — 이번 주 공지(`_workspace/01_notice.md`)를 요약해 호스트/리포터 2인 라디오 뉴스 시나리오(`_workspace/03_news_scenario.md`) 작성 (opencode SDK).
-- `scripts/news_builder.mts` — `_workspace/03_news_scenario.md`의 호스트/리포터 대사를 하나로 합쳐 Gemini-TTS(`gemini-2.5-flash-preview-tts`, voice `puck`, GEMINI_API_KEY)로 단일 음성 파일(`_workspace/04_news_files/{week}_full_news.wav`)을 생성.
+- `scripts/news_builder.mts` — `_workspace/03_news_scenario.md`의 호스트/리포터 대사를 Gemini-TTS(`gemini-2.5-flash-preview-tts`, GEMINI_API_KEY)로 합성해 단일 음성 파일(`_workspace/04_news_files/{week}_full_news.wav`)을 생성.
+  - 기본: 화자별 **다른 목소리**(호스트=`puck`, 리포터=`charon`)로 각 줄을 합성→이어붙임. 줄 단위 캐시로 중단/일일쿼터 초과 시 재실행으로 이어짐(resume).
+  - `--single`: 전체 시나리오를 **한 요청**(단일 목소리 `--voice=`)으로 합성해 full news만 생성. Gemini TTS 무료쿼터(일 10회) 절약용.
 
-  실행: `npx tsx scripts/news_builder.mts [--input=...] [--output=...] [--model=...] [--voice=...]`
+  실행: `npx tsx scripts/news_builder.mts [--single] [--input=...] [--output=...] [--model=...] [--host-voice=...] [--reporter-voice=...] [--voice=...]`
 
 **변경 이력:**
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 | ---- | --------- | ---- | ---- |
+| 2026-08-11 | `scripts/news_builder.mts`에 `--single` (단일 요청/단일 목소리 full news 생성) 모드와 줄 단위 클립 캐시(resume) 추가, API RetryInfo 지연 존중, mimeType 기반 오디오 판별로 MP3 오판 버그 수정. Gemini TTS 무료쿼터(일 10회) 초과 시 pause 후 재실행으로 이어받음 | scripts/news_builder.mts | 무료쿼터 대응 + 단일 full news 생성 |
+| 2026-08-11 | `scripts/news_builder.mts` 두 화자(Host/Reporter) 서로 다른 목소리 지원으로 개선: 호스트=`puck`, 리포터=`charon` 기본값, `--host-voice`/`--reporter-voice`로 오버라이드. Gemini TTS는 요청당 단일 voice만 지원하므로 각 대사줄을 화자별 voice로 합성 후 순서대로 이어붙여 단일 wav 생성. `tsc --noEmit` 검증 완료 | scripts/news_builder.mts | 두 사람 방송(호스트+리포터) 화자 구분 |
 | 2026-08-11 | Gemini-TTS 기반 news-builder 자동화 스크립트 `scripts/news_builder.mts` 추가: 시나리오(`03_news_scenario.md`)의 호스트/리포터 대사 파싱 → 전체 합성 1회 → 단일 `_workspace/04_news_files/{week}_full_news.wav` 생성 (gemini-2.5-flash-preview-tts, voice puck, GEMINI_API_KEY). 기존 파이썬 `tts_gemini_full.py`를 TS로 포팅. `tsc --noEmit` 검증 완료 | scripts/news_builder.mts | news-builder 에이전트 스크립트화 |
 | 2026-08-11 | playwright(TS) 기반 자동 크롤링 스크립트 `scripts/khu_crawler.ts` + easyocr 헬퍼 `scripts/easyocr_helper.py` 추가. collector+ocr-director가 하던 게시판 크롤링·이미지 다운로드·easyocr OCR을 한 명령으로 대체. pnpm devDeps에 playwright/tsx 추가. 이번 주(2026-08-10~14) 수집 17건/이미지 12장 OCR 검증 완료 | scripts/, _workspace/, package.json | collector+ocr-director 수동 흐름 스크립트화 |
 | ---- | --------- | ---- | ---- |

@@ -4,20 +4,25 @@
  * Mirrors `.claude/agents/news-builder.md` + `_workspace/tts_gemini_full.py`:
  *   1. Reads the scenario file `_workspace/03_news_scenario.md`
  *   2. Parses the host(호스트)/reporter(리포터) speaker lines
- *   3. Calls the Gemini TTS model (`gemini-2.5-flash-preview-tts`, voice `puck`)
- *      with the full script text in a single request
- *   4. Writes the resulting audio to `_workspace/04_news_files/{week}_full_news.wav`
+ *   3. Synthesizes each speaker line with a DIFFERENT voice via Gemini TTS
+ *      (default: host = `puck`, reporter = `charon`)
+ *   4. Concatenates all clips back in original order and writes a SINGLE
+ *      speech file to `_workspace/04_news_files/{week}_full_news.wav`
  *
- * The news-builder agent only needs a single speech file, so we synthesize the
- * whole scenario in one call (saves Gemini TTS quota vs. per-line calls).
+ * Two-person speech: Gemini TTS only accepts ONE voice per request, so each
+ * line is synthesized individually with its speaker's voice and then the audio
+ * is concatenated in order. The output is still a single wav file.
  *
  * API key: read from `GEMINI_API_KEY` in `.env` (or `GEMINI_API_KEY` env var).
+ * HOST_VOICE / REPORTER_VOICE (or --host-voice / --reporter-voice) pick the
+ * two voices. Available Gemini TTS prebuilt voices include:
+ *   Puck, Charon, Kore, Fenrir, Aoede, Zephyr, Calliope, Leda, Orus
  *
  * Run (from repo root):
  *   npx tsx scripts/news_builder.mts
- *   npx tsx scripts/news_builder.mts --input=_workspace/03_news_scenario.md
- *   npx tsx scripts/news_builder.mts --output=_workspace/04_news_files
- *   npx tsx scripts/news_builder.mts --model=gemini-2.5-flash-preview-tts --voice=puck
+ *   npx tsx scripts/news_builder.mts --host-voice=puck --reporter-voice=charon
+ *   npx tsx scripts/news_builder.mts --input=_workspace/03_news_scenario.md --output=_workspace/04_news_files
+ *   npx tsx scripts/news_builder.mts --single   # one TTS call, single voice (quota-friendly)
  */
 import * as fsp from "node:fs/promises";
 import * as fss from "node:fs";
@@ -34,16 +39,24 @@ const DEFAULT_INPUT = path.join(WORK, "03_news_scenario.md");
 const DEFAULT_OUTPUT_DIR = path.join(WORK, "04_news_files");
 
 const DEFAULT_MODEL = "gemini-2.5-flash-preview-tts";
-const DEFAULT_VOICE = "puck";
+const DEFAULT_HOST_VOICE = "puck";
+const DEFAULT_REPORTER_VOICE = "charon";
 
 const WEEK_ORDINALS: Record<string, string> = {
   첫째: "w1", 둘째: "w2", 셋째: "w3", 넷째: "w4", 다섯째: "w5", 여섯째: "w6",
 };
 
+const SAMPLE_RATE = 24000;
+const NUM_CHANNELS = 1;
+const BITS_PER_SAMPLE = 16;
+
 interface Options {
   input: string;
   outputDir: string;
   model: string;
+  hostVoice: string;
+  reporterVoice: string;
+  single: boolean;
   voice: string;
 }
 
@@ -52,13 +65,19 @@ function parseArgs(argv: string[]): Options {
     input: DEFAULT_INPUT,
     outputDir: DEFAULT_OUTPUT_DIR,
     model: process.env.GEMINI_TTS_MODEL ?? DEFAULT_MODEL,
-    voice: process.env.GEMINI_TTS_VOICE ?? DEFAULT_VOICE,
+    hostVoice: process.env.HOST_VOICE ?? DEFAULT_HOST_VOICE,
+    reporterVoice: process.env.REPORTER_VOICE ?? DEFAULT_REPORTER_VOICE,
+    single: false,
+    voice: process.env.GEMINI_TTS_VOICE ?? "",
   };
   for (const a of argv) {
     if (a.startsWith("--input=")) opts.input = a.slice("--input=".length);
     else if (a.startsWith("--output=")) opts.outputDir = a.slice("--output=".length);
     else if (a.startsWith("--model=")) opts.model = a.slice("--model=".length);
+    else if (a.startsWith("--host-voice=")) opts.hostVoice = a.slice("--host-voice=".length);
+    else if (a.startsWith("--reporter-voice=")) opts.reporterVoice = a.slice("--reporter-voice=".length);
     else if (a.startsWith("--voice=")) opts.voice = a.slice("--voice=".length);
+    else if (a === "--single") opts.single = true;
   }
   return opts;
 }
@@ -110,13 +129,34 @@ function parseScenario(markdown: string): Array<[string, string]> {
   return lines;
 }
 
-/** Call the Gemini TTS generateContent endpoint and return the raw audio bytes. */
+/** Build the wav header for raw PCM L16/SAMPLE_RATE mono. */
+function wavHeader(pcmLength: number): Buffer {
+  const byteRate = SAMPLE_RATE * NUM_CHANNELS * (BITS_PER_SAMPLE / 8);
+  const blockAlign = NUM_CHANNELS * (BITS_PER_SAMPLE / 8);
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcmLength, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16); // fmt chunk size
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(NUM_CHANNELS, 22);
+  header.writeUInt32LE(SAMPLE_RATE, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(BITS_PER_SAMPLE, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcmLength, 40);
+  return header;
+}
+
+/** Call the Gemini TTS generateContent endpoint and return the audio bytes + mime type. */
 async function synthesize(
   key: string,
   model: string,
   voice: string,
   text: string,
-): Promise<Buffer> {
+): Promise<{ mimeType: string; data: Buffer }> {
   const url =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}` +
     `:generateContent?key=${encodeURIComponent(key)}`;
@@ -149,39 +189,45 @@ async function synthesize(
   const parts = candidates[0]?.content?.parts ?? [];
   for (const part of parts) {
     if (part?.inlineData?.data) {
-      return Buffer.from(part.inlineData.data, "base64");
+      return {
+        mimeType: part.inlineData.mimeType ?? "audio/L16",
+        data: Buffer.from(part.inlineData.data, "base64"),
+      };
     }
   }
   throw new Error(`Gemini API returned no audio: ${JSON.stringify(json)}`);
 }
 
-/** Write raw PCM L16/24000Hz bytes as a mono 16-bit WAV file. */
-function writePcmAsWav(pcm: Buffer, outPath: string): void {
-  const sampleRate = 24000;
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-  const blockAlign = numChannels * (bitsPerSample / 8);
+/** Convert audio bytes (given their mimeType) into a full WAV file buffer. */
+function toWav(mimeType: string, audio: Buffer): Buffer {
+  const mime = mimeType.toLowerCase();
 
-  const header = Buffer.alloc(44);
-  header.write("RIFF", 0);
-  header.writeUInt32LE(36 + pcm.length, 4);
-  header.write("WAVE", 8);
-  header.write("fmt ", 12);
-  header.writeUInt32LE(16, 16); // fmt chunk size
-  header.writeUInt16LE(1, 20); // PCM
-  header.writeUInt16LE(numChannels, 22);
-  header.writeUInt32LE(sampleRate, 24);
-  header.writeUInt32LE(byteRate, 28);
-  header.writeUInt16LE(blockAlign, 32);
-  header.writeUInt16LE(bitsPerSample, 34);
-  header.write("data", 36);
-  header.writeUInt32LE(pcm.length, 40);
+  if (mime.includes("wav")) return audio;
 
-  fss.writeFileSync(outPath, Buffer.concat([header, pcm]));
+  if (mime.includes("mp3") || mime.includes("mpeg")) {
+    const mp3 = path.join(os.tmpdir(), `news_builder_${Date.now()}_${Math.random().toString(36).slice(2)}.mp3`);
+    const wav = path.join(os.tmpdir(), `news_builder_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
+    fss.writeFileSync(mp3, audio);
+    try {
+      convertMp3ToWav(mp3, wav);
+      return fss.readFileSync(wav);
+    } finally {
+      fss.rmSync(mp3, { force: true });
+      fss.rmSync(wav, { force: true });
+    }
+  }
+
+  // Raw PCM L16 / SAMPLE_RATE / mono — wrap with a wav header.
+  return Buffer.concat([wavHeader(audio.length), audio]);
 }
 
-/** Convert an MP3 file to WAV using macOS `afconvert` (fallback for MP3 mime). */
+/** Extract the PCM frames from a standard 44-byte-header wav buffer. */
+function extractPcm(wav: Buffer): Buffer {
+  // Standard RIFF/WAVE with 44-byte header → data starts at offset 44.
+  return wav.subarray(44);
+}
+
+/** Convert an MP3 file to WAV using macOS `afconvert`. */
 function convertMp3ToWav(mp3Path: string, wavPath: string): void {
   const r = spawnSync("afconvert", ["-f", "WAVE", "-d", "LEI16", mp3Path, wavPath], {
     encoding: "utf8",
@@ -190,6 +236,30 @@ function convertMp3ToWav(mp3Path: string, wavPath: string): void {
   if (r.status !== 0) {
     throw new Error(`afconvert failed: ${r.stderr?.trim() || r.error?.message || "unknown"}`);
   }
+}
+
+/** Synthesize `text` with the given voice, retrying transient API errors and honoring RetryInfo delays. */
+async function synthesizeWithRetry(
+  key: string,
+  model: string,
+  voice: string,
+  text: string,
+): Promise<{ mimeType: string; data: Buffer }> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      return await synthesize(key, model, voice, text);
+    } catch (err) {
+      lastErr = err;
+      const msg = (err as Error).message;
+      // Respect the API-provided retry delay if present, else back off.
+      const delayMatch = msg.match(/retryDelay.?[:\s]*"(\d+\.?\d*)s"/i);
+      const retryDelay = delayMatch ? parseFloat(delayMatch[1]) * 1000 : attempt * 8000;
+      console.log(`  attempt ${attempt} failed (${msg.split("\n")[0]}); retrying in ${Math.round(retryDelay / 1000)}s`);
+      await new Promise((r) => setTimeout(r, retryDelay));
+    }
+  }
+  throw new Error(`failed after 5 attempts: ${(lastErr as Error)?.message}`);
 }
 
 // ----------------------------------------------------------------------------
@@ -217,56 +287,88 @@ async function main() {
   }
 
   const lines = parseScenario(scenario);
-  const fullText = lines.map(([, t]) => t).join(" ");
+  const outPath = path.join(
+    opts.outputDir,
+    `${(await weekPrefix(opts.input)) ?? "full_news"}_full_news.wav`,
+  );
+
+  // ---- Single-call mode (quota-friendly): synthesize whole script in ONE request. ----
+  if (opts.single) {
+    const fullText = lines.map(([, t]) => t).join(" ");
+    const voice = opts.voice || "puck";
+    console.log(
+      `[news_builder] SINGLE mode: ${lines.length} lines joined → ${fullText.length} chars, one call`,
+    );
+    console.log(`[news_builder] voice=${voice} (model=${opts.model})`);
+    await fsp.mkdir(opts.outputDir, { recursive: true });
+    const { mimeType, data } = await synthesizeWithRetry(key, opts.model, voice, fullText);
+    const wav = toWav(mimeType, data);
+    fss.writeFileSync(outPath, wav);
+    const seconds = wav.subarray(44).length / (SAMPLE_RATE * 2);
+    const bytes = fss.statSync(outPath).size;
+    console.log(
+      `[news_builder] OK ${outPath} (${bytes} bytes, ~${seconds.toFixed(1)}s, single call)`,
+    );
+    return;
+  }
+
   console.log(
-    `[news_builder] read ${scenario.length} chars, ${lines.length} speaker lines, ` +
-      `${fullText.length} speech chars from ${opts.input}`,
+    `[news_builder] read ${scenario.length} chars, ${lines.length} speaker lines from ${opts.input}`,
+  );
+  console.log(
+    `[news_builder] voices: host=${opts.hostVoice}, reporter=${opts.reporterVoice} (model=${opts.model})`,
   );
 
   await fsp.mkdir(opts.outputDir, { recursive: true });
   const prefix = (await weekPrefix(opts.input)) ?? "full_news";
-  const outPath = path.join(opts.outputDir, `${prefix}_full_news.wav`);
 
-  console.log(
-    `[news_builder] synthesizing ${opts.model} (voice=${opts.voice}) in a single call...`,
-  );
+  // Per-line clip cache so interrupted runs (e.g. daily quota limit) can resume.
+  const clipsDir = path.join(opts.outputDir, `.clips_${prefix}`);
+  await fsp.mkdir(clipsDir, { recursive: true });
+  const clipPath = (i: number, voice: string) => path.join(clipsDir, `clip_${String(i).padStart(3, "0")}_${voice}.wav`);
 
-  // Retry a few times on transient API errors.
-  let lastErr: unknown;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  // Synthesize speaker-by-speaker, keep the original interleaved order.
+  const pcmParts: Buffer[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const [speaker, text] = lines[i];
+    const voice = speaker === "호스트" ? opts.hostVoice : opts.reporterVoice;
+    const tag = `[${i + 1}/${lines.length}] ${speaker}`;
+    const cached = clipPath(i, voice);
     try {
-      const audio = await synthesize(key, opts.model, opts.voice, fullText);
-      // Gemini TTS returns raw PCM L16/24000Hz; headers vary. Detect by magic.
-      const isWav = audio.length > 12 && audio.subarray(0, 4).toString("latin1") === "RIFF";
-      const isMp3 = audio.length > 2 && audio[0] === 0xff && (audio[1] & 0xe0) === 0xe0;
-
-      if (isWav) {
-        await fsp.writeFile(outPath, audio);
-      } else if (isMp3) {
-        const tmp = path.join(os.tmpdir(), `news_builder_${Date.now()}.mp3`);
-        await fsp.writeFile(tmp, audio);
-        try {
-          convertMp3ToWav(tmp, outPath);
-        } finally {
-          await fsp.rm(tmp, { force: true });
-        }
-      } else {
-        // Assume raw PCM L16/24000Hz mono.
-        writePcmAsWav(audio, outPath);
+      if (fss.existsSync(cached) && fss.statSync(cached).size > 44) {
+        pcmParts.push(extractPcm(fss.readFileSync(cached)));
+        console.log(`${tag} ≤ ${voice} (cached, ${bufferSeconds(pcmParts[pcmParts.length - 1]).toFixed(1)}s)`);
+        continue;
       }
-
-      const bytes = (await fsp.stat(outPath)).size;
-      console.log(`[news_builder] OK ${outPath} (${bytes} bytes)`);
-      return;
+      console.log(`${tag} → ${voice} ...`);
+      const { mimeType, data } = await synthesizeWithRetry(key, opts.model, voice, text);
+      const wav = toWav(mimeType, data);
+      fss.writeFileSync(cached, wav);
+      pcmParts.push(extractPcm(wav));
+      console.log(`  ✓ ${bufferSeconds(pcmParts[pcmParts.length - 1]).toFixed(1)}s (${mimeType})`);
     } catch (err) {
-      lastErr = err;
-      console.log(`[news_builder] attempt ${attempt} failed: ${(err as Error).message}`);
-      await new Promise((r) => setTimeout(r, 5000));
+      console.error(`  ✗ ${(err as Error).message}`);
+      console.error(
+        `[news_builder] paused at segment ${i + 1}. Re-run the command to resume; completed clips are cached in ${clipsDir}`,
+      );
+      process.exit(1);
     }
   }
 
-  console.error(`[news_builder] FAILED after 3 attempts: ${(lastErr as Error)?.message}`);
-  process.exit(1);
+  // Concatenate all PCM frames and write a single wav file.
+  const fullPcm = Buffer.concat(pcmParts);
+  fss.writeFileSync(outPath, Buffer.concat([wavHeader(fullPcm.length), fullPcm]));
+
+  const seconds = fullPcm.length / (SAMPLE_RATE * 2);
+  const bytes = fss.statSync(outPath).size;
+  console.log(
+    `[news_builder] OK ${outPath} (${bytes} bytes, ~${seconds.toFixed(1)}s, ${lines.length} segments)`,
+  );
+}
+
+/** Seconds represented by a PCM buffer (mono 16-bit @ SAMPLE_RATE). */
+function bufferSeconds(pcm: Buffer): number {
+  return pcm.length / (SAMPLE_RATE * 2);
 }
 
 main().catch((err) => {
