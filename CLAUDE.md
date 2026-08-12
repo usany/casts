@@ -31,6 +31,7 @@
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 | ---- | --------- | ---- | ---- |
+| 2026-08-12 | cron 진입점을 **node-cron 기반 TypeScript 데몬**으로 전환: 기존 `cron_wrapper.sh`/`install_cron.sh`(bash) 폐기 → `cron_wrapper.ts`(node-cron으로 주 1회 스케줄을 프로세스 내에서 처리, `noOverlap`/`timezone`/로그 지원) + `install_cron.ts`(launchd LaunchAgent `com.casts.radio-news` 등록·로딩으로 데몬 상주·재부팅 유지, `--uninstall`/`--status` 지원). crontab 항목 제거, package.json의 `news:install`(`tsx scripts/install_cron.ts`) 유지 | scripts/cron_wrapper.ts, scripts/install_cron.ts, crontab, ~/Library/LaunchAgents/com.casts.radio-news.plist | cron → node-cron 데몬 + launchd 전환 |
 | 2026-08-11 | cron 진입점을 **bash로 복원**: `cron_wrapper.ts`/`install_cron.ts`(TS 버전 실행 중 `Command aborted` 문제) 폐기하고 `scripts/cron_wrapper.sh` + `scripts/install_cron.sh`(bash) 복원. cron은 `cron_wrapper.sh`가 PATH 복원 후 `npx tsx scripts/run_pipeline.ts` 실행. crontab 재등록 완료 (매주 금 22:00) | scripts/cron_wrapper.sh, scripts/install_cron.sh, crontab | cron 진입점 bash 복원 |
 | 2026-08-11 | 파이프라인을 **TypeScript**(`scripts/run_pipeline.ts`)로 재작성: 스크립트 3개(khu_crawler→scenarist→news_builder)를 순차 실행 + 각 단계 산출물 검증(`requireFile`), 어느 단계가 실패하면 전체 파이프라인 비정상 종료(0이 아닌 exit code). cron 자동화: `scripts/install_cron.sh`로 `0 22 * * 5`(매주 금 22:00) 등록. `package.json`의 `news:pipeline`도 TS로 변경 | scripts/run_pipeline.ts, scripts/install_cron.sh, package.json, crontab | 스크립트 전 과정 파이프라이닝 + cron 예약 (TS 버전) |
 | 2026-08-11 | 세 스크립트(khu_crawler→scenarist→news_builder)를 실패 시 전체 중단되는 파이프라인으로 묶기(Bash 오케스트레이터 → 이후 TS로 대체되어 제거됨) | scripts/run_pipeline.ts | 스크립트 전 과정 파이프라이닝 |
