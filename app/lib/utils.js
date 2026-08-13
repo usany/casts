@@ -1,7 +1,10 @@
 export const EPISODES = [
-  { title: "2026-07-27 Week 3 Radio News", podcast: "KHU Radio News", duration: "6:08", url: "/news/2026-07-27-week3.wav" },
-  { title: "2026-08-08 Week 1 Radio News", podcast: "KHU Radio News", duration: "10:10", url: "/news/2026-08-08-week1.wav" },
-  { title: "Newsfront", podcast: "News Podcast", duration: "0:00", url: "/Newsfront.mp3" },
+  { title: "Newsfront", podcast: "News Podcast", duration: "1:00", url: "/Newsfront.mp3" },
+  { title: "KHU Weekly News Broadcast - Week 5", podcast: "KHU News", duration: "2:37", url: "/week5_broadcast_audio.wav" },
+  { title: "KHU Full News - 2026 Week 3 (July)", podcast: "KHU News", duration: "8:42", url: "/2026_07_w3_full_news.wav" },
+  { title: "KHU News - 2026 Week 3 (July)", podcast: "KHU News", duration: "6:08", url: "/2026_07_w3.wav" },
+  { title: "KHU Full News - 2026 Week 1 (August)", podcast: "KHU News", duration: "10:10", url: "/2026_08_w1_full_news.wav" },
+  { title: "KHU Full News - 2026 Week 2 (August)", podcast: "KHU News", duration: "7:13", url: "/2026_08_w2_full_news.wav" },
 ]
 
 export async function getAudioDuration(url) {
