@@ -5,6 +5,7 @@ import styles from './WaveformProgress.module.css'
 
 export default function WaveformProgress({ audio, current, currentDisplay, duration, durationSeconds, onSeek }) {
   const canvasRef = useRef(null)
+  const progressBarRef = useRef(null)
   const animationIdRef = useRef(null)
   const [waveformData, setWaveformData] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -114,8 +115,8 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
     }
   }, [current, durationSeconds, waveformData])
 
-  function handleSeek(e) {
-    const rect = canvasRef.current.getBoundingClientRect()
+  function handleSeek(e, element) {
+    const rect = element.getBoundingClientRect()
     const percent = (e.clientX - rect.left) / rect.width
     const newTime = percent * durationSeconds
     onSeek(newTime)
@@ -123,12 +124,20 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
 
   function handleMouseDown(e) {
     setIsDragging(true)
-    handleSeek(e)
+    if (canvasRef.current && e.target === canvasRef.current) {
+      handleSeek(e, canvasRef.current)
+    } else if (progressBarRef.current && e.currentTarget === progressBarRef.current) {
+      handleSeek(e, progressBarRef.current)
+    }
   }
 
   function handleMouseMove(e) {
     if (!isDragging) return
-    handleSeek(e)
+    if (e.target === canvasRef.current) {
+      handleSeek(e, canvasRef.current)
+    } else if (e.currentTarget === progressBarRef.current) {
+      handleSeek(e, progressBarRef.current)
+    }
   }
 
   function handleMouseUp() {
@@ -139,6 +148,16 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
     setIsDragging(false)
   }
 
+  function handleCanvasClick(e) {
+    handleSeek(e, canvasRef.current)
+  }
+
+  function handleProgressBarClick(e) {
+    handleSeek(e, progressBarRef.current)
+  }
+
+  const progressPercent = durationSeconds > 0 ? (current / durationSeconds) * 100 : 0
+
   return (
     <div className={styles.container}>
       <canvas
@@ -146,13 +165,30 @@ export default function WaveformProgress({ audio, current, currentDisplay, durat
         width={400}
         height={80}
         className={styles.canvas}
-        onClick={handleSeek}
+        onClick={handleCanvasClick}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       />
+      <div 
+        ref={progressBarRef}
+        className={styles.progressBarContainer}
+        onClick={handleProgressBarClick}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        style={{ cursor: isDragging ? 'grabbing' : 'pointer' }}
+      >
+        <div className={styles.progressBar}>
+          <div 
+            className={styles.progressFill}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
       <div className={styles.times}>
         <span>{currentDisplay}</span>
         <span>{duration}</span>

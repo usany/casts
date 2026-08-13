@@ -2,10 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { EPISODES, formatTime } from '../lib/utils'
+import { useTheme } from '../lib/ThemeContext'
+import { getTranslation } from '../lib/i18n'
 import EpisodeList from './EpisodeList'
 import WaveformProgress from './WaveformProgress'
 import Controls from './Controls'
 import VolumeControl from './VolumeControl'
+import DetailDropdown from './DetailDropdown'
+import ThemeToggle from './ThemeToggle'
+import LanguageToggle from './LanguageToggle'
 import styles from './Player.module.css'
 
 export default function Player() {
@@ -17,6 +22,7 @@ export default function Player() {
   const [duration, setDuration] = useState('0:00')
   const [durationSeconds, setDurationSeconds] = useState(0)
   const [volume, setVolume] = useState(70)
+  const { language } = useTheme()
 
   const episode = EPISODES[currentIndex]
 
@@ -95,8 +101,14 @@ export default function Player() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>🎙️ Podcast Player</h1>
-        <p>Listen to your favorite podcasts</p>
+        <div className={styles.headerTitle}>
+          <h1>🎙️ {getTranslation(language, 'title')}</h1>
+          <p>{getTranslation(language, 'subtitle')}</p>
+        </div>
+        <div className={styles.toggles}>
+          <ThemeToggle />
+          <LanguageToggle />
+        </div>
       </header>
 
       <div className={styles.main}>
@@ -135,6 +147,10 @@ export default function Player() {
             volume={volume}
             onVolumeChange={setVolume}
           />
+
+          {episode.notices && (
+            <DetailDropdown notices={episode.notices} />
+          )}
         </div>
       </div>
 

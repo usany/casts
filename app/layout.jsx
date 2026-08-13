@@ -1,4 +1,5 @@
 import './globals.css'
+import { ThemeProvider } from './lib/ThemeContext'
 
 export const metadata = {
   title: 'Podcast Player',
@@ -7,8 +8,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   )
 }

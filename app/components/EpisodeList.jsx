@@ -24,11 +24,12 @@ export default function EpisodeList({ episodes, currentIndex, onSelect }) {
           <div
             key={i}
             className={`${styles.item} ${i === currentIndex ? styles.active : ''}`}
-            onClick={() => onSelect(i)}
           >
-            <div className={styles.title}>{ep.title}</div>
-            <div className={styles.podcast}>{ep.podcast}</div>
-            <div className={styles.duration}>⏱ {durations[i] || '0:00'}</div>
+            <div className={styles.episodeContent} onClick={() => onSelect(i)}>
+              <div className={styles.title}>{ep.title}</div>
+              <div className={styles.podcast}>{ep.podcast}</div>
+              <div className={styles.duration}>⏱ {durations[i] || '0:00'}</div>
+            </div>
           </div>
         ))}
       </div>

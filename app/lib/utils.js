@@ -6,7 +6,6 @@ export const EPISODES = [
   { title: "KHU Full News - 2026 Week 1 (August)", podcast: "KHU News", duration: "10:10", url: "/2026_08_w1_full_news.wav" },
   { title: "KHU Full News - 2026 Week 2 (August)", podcast: "KHU News", duration: "7:13", url: "/2026_08_w2_full_news.wav" },
 ]
-
 export async function getAudioDuration(url) {
   return new Promise((resolve) => {
     const audio = new Audio()
