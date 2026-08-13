@@ -256,14 +256,24 @@ function stripRegion(title: string): string {
 // ----------------------------------------------------------------------------
 // OCR (easyocr via python)
 // ----------------------------------------------------------------------------
+// easyocr holds the model + image tensors in a single python process; feeding the
+// whole batch at once can exhaust RAM and get the process SIGKILLed (exit 137).
+// Run small batches in separate subprocesses so memory is freed between them.
+const OCR_BATCH_SIZE = 3;
+
 async function runOcr(imagePaths: string[]): Promise<OcrResult[]> {
   if (imagePaths.length === 0) return [];
-  const { stdout } = await execFileAsync(PYTHON, [HELPER, ...imagePaths], {
-    maxBuffer: 64 * 1024 * 1024,
-    timeout: 30 * 60 * 1000,
-  });
-  const parsed = JSON.parse(stdout);
-  return (parsed.result ?? []) as OcrResult[];
+  const results: OcrResult[] = [];
+  for (let i = 0; i < imagePaths.length; i += OCR_BATCH_SIZE) {
+    const batch = imagePaths.slice(i, i + OCR_BATCH_SIZE);
+    const { stdout } = await execFileAsync(PYTHON, [HELPER, ...batch], {
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 30 * 60 * 1000,
+    });
+    const parsed = JSON.parse(stdout);
+    results.push(...(parsed.result ?? []));
+  }
+  return results;
 }
 
 // ----------------------------------------------------------------------------

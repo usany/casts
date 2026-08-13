@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "news:pipeline": "tsx scripts/run_pipeline.ts",
+    "lint": "tsx scripts/run_pipeline.ts",
     "news:crawl": "tsx scripts/khu_crawler.ts",
     "news:scenario": "tsx scripts/scenarist.mts",
     "news:build": "tsx scripts/news_builder.mts",
