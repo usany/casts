@@ -26,11 +26,17 @@ export default function Player() {
 
   const episode = EPISODES[currentIndex]
 
+  // Set initial audio source on mount
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.src = episode.url
+  }, [])
+
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    audio.src = episode.url
     audio.volume = volume / 100
 
     const updateTime = () => {
@@ -116,8 +122,11 @@ export default function Player() {
           episodes={EPISODES}
           currentIndex={currentIndex}
           onSelect={(i) => {
+            const audio = audioRef.current
             setCurrentIndex(i)
             setIsPlaying(true)
+            audio.src = EPISODES[i].url
+            audio.play().catch(() => {})
           }}
         />
 
