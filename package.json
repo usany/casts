@@ -12,6 +12,7 @@
     "news:install": "tsx scripts/install_cron.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "next": "^14.0.0",
     "node-cron": "^4.6.0",
     "react": "^18.2.0",
