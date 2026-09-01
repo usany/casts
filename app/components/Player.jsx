@@ -17,65 +17,46 @@ export default function Player() {
   const audioRef = useRef(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState('0:00')
-  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0)
-  const [duration, setDuration] = useState('0:00')
-  const [durationSeconds, setDurationSeconds] = useState(0)
+  const [currentSec, setCurrentSec] = useState(0)
+  const [totalSec, setTotalSec] = useState(0)
   const [volume, setVolume] = useState(70)
   const { language } = useTheme()
 
   const episode = EPISODES[currentIndex]
 
+  // Load episode source and wire up events
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
     audio.src = episode.url
-    audio.volume = volume / 100
+    audio.currentTime = 0
+    setCurrentSec(0)
 
-    // Auto-play when a new episode is selected from the list
     if (isPlaying) {
-      audio.currentTime = 0
       audio.play().catch(() => setIsPlaying(false))
     }
 
-    const updateTime = () => {
-      setCurrentTime(formatTime(audio.currentTime))
-      setCurrentTimeSeconds(audio.currentTime)
-    }
+    const onTime = () => setCurrentSec(audio.currentTime)
+    const onMeta = () => setTotalSec(audio.duration || 0)
+    const onEnd = () => setCurrentIndex((i) => (i + 1) % EPISODES.length)
 
-    const updateDuration = () => {
-      setDuration(formatTime(audio.duration))
-      setDurationSeconds(audio.duration)
-    }
-
-    const handleEnded = () => {
-      setCurrentIndex((prev) => (prev + 1) % EPISODES.length)
-    }
-
-    audio.addEventListener('timeupdate', updateTime)
-    audio.addEventListener('loadedmetadata', updateDuration)
-    audio.addEventListener('ended', handleEnded)
-
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('ended', onEnd)
     return () => {
-      audio.removeEventListener('timeupdate', updateTime)
-      audio.removeEventListener('loadedmetadata', updateDuration)
-      audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('ended', onEnd)
     }
   }, [currentIndex])
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume / 100
-    }
+    if (audioRef.current) audioRef.current.volume = volume / 100
   }, [volume])
 
-  function handlePlay() {
+  function togglePlay() {
     const audio = audioRef.current
-    if (audio.src === '') {
-      audio.src = episode.url
-    }
-
     if (audio.paused) {
       audio.play()
       setIsPlaying(true)
@@ -85,22 +66,18 @@ export default function Player() {
     }
   }
 
-  function handlePrevious() {
-    const audio = audioRef.current
-    audio.currentTime = Math.max(0, audio.currentTime - 10)
-  }
-
-  function handleNext() {
-    const audio = audioRef.current
-    audio.currentTime = Math.min(
-      audio.duration || Infinity,
-      audio.currentTime + 10
-    )
-  }
-
-  function handleSeek(newTime) {
-    if (audioRef.current) {
-      audioRef.current.currentTime = newTime
+  function handleSelect(i) {
+    if (i === currentIndex) {
+      const audio = audioRef.current
+      if (audio) {
+        audio.currentTime = 0
+        setCurrentSec(0)
+        if (audio.paused) audio.play().catch(() => setIsPlaying(false))
+        setIsPlaying(true)
+      }
+    } else {
+      setCurrentIndex(i)
+      setIsPlaying(true)
     }
   }
 
@@ -121,22 +98,7 @@ export default function Player() {
         <EpisodeList
           episodes={EPISODES}
           currentIndex={currentIndex}
-          onSelect={(i) => {
-            if (i === currentIndex) {
-              // Same episode: restart from beginning
-              const audio = audioRef.current
-              if (audio) {
-                audio.currentTime = 0
-                if (audio.paused) {
-                  audio.play().catch(() => setIsPlaying(false))
-                }
-                setIsPlaying(true)
-              }
-              return
-            }
-            setCurrentIndex(i)
-            setIsPlaying(true)
-          }}
+          onSelect={handleSelect}
         />
 
         <div className={styles.player}>
@@ -147,18 +109,18 @@ export default function Player() {
 
           <WaveformProgress
             audio={audioRef.current}
-            current={currentTimeSeconds}
-            currentDisplay={currentTime}
-            duration={duration}
-            durationSeconds={durationSeconds}
-            onSeek={handleSeek}
+            current={currentSec}
+            currentDisplay={formatTime(currentSec)}
+            duration={formatTime(totalSec)}
+            durationSeconds={totalSec}
+            onSeek={(t) => { if (audioRef.current) audioRef.current.currentTime = t }}
           />
 
           <Controls
             isPlaying={isPlaying}
-            onPlay={handlePlay}
-            onPrevious={handlePrevious}
-            onNext={handleNext}
+            onPlay={togglePlay}
+            onPrevious={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10) }}
+            onNext={() => { if (audioRef.current) audioRef.current.currentTime = Math.min(audioRef.current.duration || Infinity, audioRef.current.currentTime + 10) }}
           />
 
           <VolumeControl
