@@ -135,8 +135,6 @@ export default function Player() {
               return
             }
             setCurrentIndex(i)
-            setCurrentTimeSeconds(0)
-            setCurrentTime('0:00')
             setIsPlaying(true)
           }}
         />
