@@ -33,6 +33,12 @@ export default function Player() {
     audio.src = episode.url
     audio.volume = volume / 100
 
+    // Auto-play when a new episode is selected from the list
+    if (isPlaying) {
+      audio.currentTime = 0
+      audio.play().catch(() => setIsPlaying(false))
+    }
+
     const updateTime = () => {
       setCurrentTime(formatTime(audio.currentTime))
       setCurrentTimeSeconds(audio.currentTime)
@@ -116,7 +122,21 @@ export default function Player() {
           episodes={EPISODES}
           currentIndex={currentIndex}
           onSelect={(i) => {
+            if (i === currentIndex) {
+              // Same episode: restart from beginning
+              const audio = audioRef.current
+              if (audio) {
+                audio.currentTime = 0
+                if (audio.paused) {
+                  audio.play().catch(() => setIsPlaying(false))
+                }
+                setIsPlaying(true)
+              }
+              return
+            }
             setCurrentIndex(i)
+            setCurrentTimeSeconds(0)
+            setCurrentTime('0:00')
             setIsPlaying(true)
           }}
         />
