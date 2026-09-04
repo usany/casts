@@ -47,6 +47,12 @@ def prepare_image(raw: bytes, mode: str = "RGB") -> bytes:
 
 
 def main() -> None:
+    # Force UTF-8 on stdout. On Windows, Python writes the console code page
+    # (e.g. cp949) by default, which corrupts Hangul when the Node.js caller
+    # decodes stdout as UTF-8 (it turns into '\ufffd' + Cyrillic garbage).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     paths = [p for p in sys.argv[1:] if os.path.exists(p)]
     if not paths:
         print(json.dumps({"result": []}, ensure_ascii=False))

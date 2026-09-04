@@ -269,6 +269,9 @@ async function runOcr(imagePaths: string[]): Promise<OcrResult[]> {
     const { stdout } = await execFileAsync(PYTHON, [HELPER, ...batch], {
       maxBuffer: 64 * 1024 * 1024,
       timeout: 30 * 60 * 1000,
+      // Belt-and-suspenders: ensure Python emits UTF-8 (Windows defaults to
+      // cp949, which Node then decodes as UTF-8 and mangles Korean into '�').
+      env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
     });
     const parsed = JSON.parse(stdout);
     results.push(...(parsed.result ?? []));
