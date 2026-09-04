@@ -37,9 +37,10 @@ const DEFAULT_INPUT = path.join(WORK, "01_notice.md");
 const DEFAULT_OUTPUT = path.join(WORK, "03_news_scenario.md");
 
 // Optional: "<provider>/<model>". Override via OPENCODE_MODEL or --model.
-// Deepseek model via the opencode provider.
-// Example: "opencode/deepseek-v4-flash-free".
-const DEFAULT_MODEL = process.env.OPENCODE_MODEL ?? "opencode/deepseek-v4-flash-free";
+// opencode provider free-tier model (the previous deepseek-v4-flash-free was
+// retired from the free tier). Override with OPENCODE_MODEL if needed.
+// Example: "opencode/nemotron-3.5-lightning-free".
+const DEFAULT_MODEL = process.env.OPENCODE_MODEL ?? "opencode/big-pickle";
 
 function parseArgs(argv: string[]) {
   const args: { input: string; output: string; model: string } = {
@@ -62,7 +63,7 @@ function buildPrompt(noticeMarkdown: string): string {
   return [
     "You are the Scenarist agent for a university radio news program at Kyung Hee University.",
     "",
-    "입력으로 주어지는 금주 공지사항을 읽고, 다음 원칙을 지켜 호스트(앵커)와 리포터 두 명의 radio news 시나리오를 한국어로 작성한다.",
+    "입력으로 주어지는 금주 공지사항을 읽고, 다음 원칙을 지켜 호스트(앵커) 1명과 리포터 1명의 radio news 시나리오를 한국어로 작성한다. 호스트와 리포터의 이름은 언급하지 않는다.",
     "",
     "## 작업 원칙",
     "1. **do not repeat** — 호스트와 리포터가 같은 내용을 반복하지 않도록 한다.",
